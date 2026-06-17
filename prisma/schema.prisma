@@ -1,0 +1,133 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  password  String
+  name      String   @default("")
+  role      String   @default("worker")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Product {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String   @default("")
+  category    String   @default("general")
+  price       Float    @default(0)
+  cost        Float    @default(0)
+  stock       Int      @default(0)
+  minStock    Int      @default(0)
+  image       String   @default("")
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  saleItems       SaleItem[]
+  purchaseItems   PurchaseItem[]
+}
+
+model Client {
+  id        Int      @id @default(autoincrement())
+  name      String
+  phone     String   @default("")
+  email     String   @default("")
+  notes     String   @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  appointments   Appointment[]
+  sales          Sale[]
+  treatmentPlans TreatmentPlan[]
+}
+
+model TreatmentPlan {
+  id               Int           @id @default(autoincrement())
+  clientId         Int
+  description      String
+  totalSessions    Int
+  remainingSessions Int
+  price            Float         @default(0)
+  status           String        @default("activo")
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  client      Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+}
+
+model Appointment {
+  id              Int            @id @default(autoincrement())
+  clientId        Int
+  date            DateTime
+  time            String         @default("")
+  type            String         @default("revision")
+  status          String         @default("pendiente")
+  notes           String         @default("")
+  treatmentPlanId Int?
+  sessionNumber   Int?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  client        Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  treatmentPlan TreatmentPlan? @relation(fields: [treatmentPlanId], references: [id], onDelete: SetNull)
+}
+
+model Sale {
+  id        Int      @id @default(autoincrement())
+  clientId  Int?
+  total     Float    @default(0)
+  paid      Float    @default(0)
+  change    Float    @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  client Client?  @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  items  SaleItem[]
+}
+
+model SaleItem {
+  id          Int      @id @default(autoincrement())
+  saleId      Int
+  productId   Int?
+  customName        String   @default("")
+  customDescription String   @default("")
+  customPrice       Float    @default(0)
+  quantity    Int      @default(1)
+  unitPrice   Float    @default(0)
+  subtotal    Float    @default(0)
+
+  sale    Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id])
+}
+
+model Purchase {
+  id        Int      @id @default(autoincrement())
+  concept   String   @default("")
+  total     Float    @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items PurchaseItem[]
+}
+
+model PurchaseItem {
+  id        Int     @id @default(autoincrement())
+  purchaseId Int
+  productId Int
+  quantity  Int     @default(1)
+  unitCost  Float   @default(0)
+  subtotal  Float   @default(0)
+
+  purchase Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  product  Product  @relation(fields: [productId], references: [id])
+}
