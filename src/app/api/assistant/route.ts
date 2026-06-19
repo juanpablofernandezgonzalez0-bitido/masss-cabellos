@@ -14,61 +14,89 @@ async function buildContext() {
   const todayEnd = new Date(todayStart.getTime() + 86_400_000);
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+  const yesterdayStart = new Date(todayStart.getTime() - 86_400_000);
+  const yesterdayEnd = new Date(todayStart.getTime());
+  const weekAgo = new Date(todayStart.getTime() - 7 * 86_400_000);
 
   const [
     todaySales,
+    yesterdaySales,
+    weekSales,
     monthSales,
+    allSales,
     todayAppointments,
+    weekAppointments,
     allProducts,
     activePlans,
     totalClients,
-    recentSales,
+    allClients,
+    recentPurchases,
   ] = await Promise.all([
     prisma.sale.findMany({ where: { createdAt: { gte: todayStart, lte: todayEnd } }, include: { items: true } }),
+    prisma.sale.findMany({ where: { createdAt: { gte: yesterdayStart, lte: yesterdayEnd } }, include: { items: true } }),
+    prisma.sale.findMany({ where: { createdAt: { gte: weekAgo } }, include: { items: true, client: { select: { name: true } } } }),
     prisma.sale.findMany({ where: { createdAt: { gte: monthStart, lte: monthEnd } }, include: { items: true } }),
-    prisma.appointment.findMany({ where: { date: { gte: todayStart, lte: todayEnd } }, include: { client: { select: { name: true } } } }),
+    prisma.sale.findMany({ take: 20, orderBy: { createdAt: "desc" }, include: { client: { select: { name: true } }, items: { include: { product: { select: { name: true } } } } } }),
+    prisma.appointment.findMany({ where: { date: { gte: todayStart, lte: todayEnd } }, include: { client: { select: { name: true } } }, orderBy: { time: "asc" } }),
+    prisma.appointment.findMany({ where: { date: { gte: todayStart, lte: new Date(todayStart.getTime() + 7 * 86_400_000) } }, include: { client: { select: { name: true } } }, orderBy: { date: "asc" } }),
     prisma.product.findMany({ where: { isActive: true } }),
     prisma.treatmentPlan.findMany({ where: { status: "activo" }, include: { client: { select: { name: true } } } }),
     prisma.client.count(),
-    prisma.sale.findMany({ take: 5, orderBy: { createdAt: "desc" }, include: { client: { select: { name: true } }, items: true } }),
+    prisma.client.findMany({ include: { sales: { select: { total: true } } } }),
+    prisma.purchase.findMany({ take: 5, orderBy: { createdAt: "desc" } }),
   ]);
 
-  const lowStockProducts = allProducts.filter((p) => p.stock < p.minStock);
-  const totalProducts = allProducts.length;
+  const lowStock = allProducts.filter((p) => p.stock < p.minStock);
 
-  const todayRevenue = todaySales.reduce((s, x) => s + x.total, 0);
-  const monthRevenue = monthSales.reduce((s, x) => s + x.total, 0);
-  const todayProductsSold = todaySales.reduce((s, x) => s + x.items.reduce((si, i) => si + i.quantity, 0), 0);
+  const fmt = (d: Date) => d.toLocaleDateString("es-CO", { weekday: "long", day: "numeric", month: "long" });
 
-  const productsStr = lowStockProducts.map((p) => `"${p.name}" (stock: ${p.stock}, mínimo: ${p.minStock})`).join("\n");
+  const salesByDay = new Map<string, { count: number; total: number }>();
+  for (const s of weekSales) {
+    const key = s.createdAt.toLocaleDateString("es-CO");
+    const e = salesByDay.get(key) ?? { count: 0, total: 0 };
+    e.count++; e.total += s.total;
+    salesByDay.set(key, e);
+  }
 
-  return `FECHA ACTUAL: ${now.toLocaleDateString("es-CO", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+  const clientsWithSpending = allClients
+    .map((c) => ({ name: c.name, spent: c.sales.reduce((s, x) => s + x.total, 0) }))
+    .sort((a, b) => b.spent - a.spent);
 
-RESUMEN DE HOY:
-- Ventas del día: ${todaySales.length} ventas por $${todayRevenue.toLocaleString("es-CO")}
-- Productos vendidos hoy: ${todayProductsSold} unidades
-- Citas de hoy: ${todayAppointments.length} citas
+  return `HOY: ${fmt(now)}
+AYER: ${fmt(yesterdayStart)}
 
-RESUMEN DEL MES:
-- Ventas del mes: ${monthSales.length} ventas por $${monthRevenue.toLocaleString("es-CO")}
+VENTAS POR DÍA (ÚLTIMOS 7 DÍAS):
+${[...salesByDay.entries()].map(([d, v]) => `- ${d}: ${v.count} ventas, $${v.total.toLocaleString("es-CO")}`).join("\n")}
 
-INVENTARIO:
-- Total productos activos: ${totalProducts}
-- Productos por debajo del stock mínimo:
-${productsStr || "Ninguno"}
+HOY:
+- Ventas: ${todaySales.length} ventas, $${todaySales.reduce((s, x) => s + x.total, 0).toLocaleString("es-CO")}
+- Productos vendidos: ${todaySales.reduce((s, x) => s + x.items.reduce((si, i) => si + i.quantity, 0), 0)} unidades
+- Citas: ${todayAppointments.length} citas
 
-CLIENTES:
-- Total clientes registrados: ${totalClients}
-- Planes activos: ${activePlans.length}
+AYER:
+- Ventas: ${yesterdaySales.length} ventas, $${yesterdaySales.reduce((s, x) => s + x.total, 0).toLocaleString("es-CO")}
+- Productos vendidos: ${yesterdaySales.reduce((s, x) => s + x.items.reduce((si, i) => si + i.quantity, 0), 0)} unidades
 
-CITAS DE HOY:
-${todayAppointments.map((a) => `- ${a.client.name} a las ${a.time} (${a.type})`).join("\n") || "Ninguna"}
+ESTE MES:
+- Ventas: ${monthSales.length} ventas, $${monthSales.reduce((s, x) => s + x.total, 0).toLocaleString("es-CO")}
 
-ÚLTIMAS 5 VENTAS:
-${recentSales.map((s) => `- $${s.total.toLocaleString("es-CO")} - ${s.client?.name ?? "Sin cliente"} (${s.createdAt.toLocaleDateString("es-CO")})`).join("\n") || "Ninguna"}
+PRÓXIMAS CITAS (7 DÍAS):
+${weekAppointments.map((a) => `- ${a.client.name} - ${a.date.toLocaleDateString("es-CO")} a las ${a.time} (${a.type})`).join("\n") || "Ninguna"}
+
+INVENTARIO BAJO:
+${lowStock.map((p) => `- ${p.name}: ${p.stock} uni. (mín: ${p.minStock})`).join("\n") || "Todo en stock normal"}
+
+TOP CLIENTES POR GASTO TOTAL:
+${clientsWithSpending.slice(0, 5).map((c) => `- ${c.name}: $${c.spent.toLocaleString("es-CO")}`).join("\n")}
 
 PLANES ACTIVOS:
-${activePlans.map((p) => `- ${p.description} - Cliente: ${p.client.name} (${p.remainingSessions}/${p.totalSessions} sesiones restantes)`).join("\n") || "Ninguno"}`;
+${activePlans.map((p) => `- ${p.client.name}: ${p.description} (${p.remainingSessions}/${p.totalSessions} sesiones)`).join("\n") || "Ninguno"}
+
+COMPRAS RECIENTES:
+${recentPurchases.map((p) => `- $${p.total.toLocaleString("es-CO")} (${p.concept}) - ${p.createdAt.toLocaleDateString("es-CO")}`).join("\n") || "Ninguna"}
+
+ÚLTIMAS 20 VENTAS (con productos):
+${allSales.map((s) => `- $${s.total.toLocaleString("es-CO")} ${s.client?.name ? "- "+s.client.name : ""} (${s.createdAt.toLocaleDateString("es-CO")})`).join("\n")}`;
 }
 
 export async function POST(req: Request) {
