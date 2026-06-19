@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import {
   BarChart3, TrendingUp, DollarSign, ShoppingCart, Calendar,
   Package, Users, Receipt, Truck, Clock, Ticket, Star,
-  TrendingDown, ArrowUpRight, ArrowDownRight,
+  ArrowUpRight, ArrowDownRight, CalendarDays,
 } from "lucide-react";
 import { MonthlySalesChart } from "./monthly-sales-chart";
 import { TopProductsChart } from "./top-products-chart";
@@ -42,6 +42,51 @@ function getDateRange(period: Period) {
 
 async function getPeriodSummary(period: Period): Promise<PeriodSummary> {
   const { start, end } = getDateRange(period);
+
+  const sales = await prisma.sale.findMany({
+    where: { createdAt: { gte: start, lte: end } },
+    include: { items: true, client: { select: { id: true, name: true } } },
+  });
+  const purchases = await prisma.purchase.findMany({
+    where: { createdAt: { gte: start, lte: end } },
+    include: { items: true },
+  });
+  const appointments = await prisma.appointment.findMany({
+    where: { date: { gte: start, lte: end } },
+  });
+  const activePlans = await prisma.treatmentPlan.findMany({
+    where: { status: "activo" },
+  });
+
+  const revenue = sales.reduce((s, x) => s + x.total, 0);
+  const expenses = purchases.reduce((s, x) => s + x.total, 0);
+  const productsSold = sales.reduce((s, x) => s + x.items.reduce((si, item) => si + item.quantity, 0), 0);
+  const productsPurchased = purchases.reduce((s, x) => s + x.items.reduce((si, item) => si + item.quantity, 0), 0);
+  const uniqueClients = new Set([
+    ...sales.filter((s) => s.clientId).map((s) => s.clientId),
+    ...appointments.map((a) => a.clientId),
+  ]).size;
+  const salesCount = sales.length;
+  const purchasesCount = purchases.length;
+
+  return {
+    revenue,
+    expenses,
+    profit: revenue - expenses,
+    productsSold,
+    appointments: appointments.length,
+    activePlans: activePlans.length,
+    productsPurchased,
+    uniqueClients,
+    salesCount,
+    purchasesCount,
+    avgTicket: salesCount > 0 ? Math.round(revenue / salesCount) : 0,
+  };
+}
+
+async function getDaySummary(dateStr: string): Promise<PeriodSummary> {
+  const start = new Date(dateStr + "T00:00:00");
+  const end = new Date(dateStr + "T23:59:59.999");
 
   const sales = await prisma.sale.findMany({
     where: { createdAt: { gte: start, lte: end } },
@@ -213,20 +258,37 @@ function getMetricCards(summary: PeriodSummary) {
 export default async function ReportsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ period?: string }>;
+  searchParams: Promise<{ period?: string; date?: string }>;
 }) {
-  const { period: rawPeriod } = await searchParams;
-  const period: Period = ["today", "week", "month", "year"].includes(rawPeriod ?? "")
-    ? (rawPeriod as Period)
-    : "month";
+  const { period: rawPeriod, date: rawDate } = await searchParams;
+
+  const hasSpecificDate = rawDate && /^\d{4}-\d{2}-\d{2}$/.test(rawDate);
+
+  const period: Period = hasSpecificDate
+    ? "today"
+    : (["today", "week", "month", "year"].includes(rawPeriod ?? "")
+      ? (rawPeriod as Period)
+      : "month");
 
   const now = new Date();
   const currentYear = now.getFullYear();
-  const periodLabel = getDateRange(period).label;
 
-  const [summary, monthlyData, topProducts, weekdayData, { recentSales, recentPurchases, upcomingAppointments }] =
+  let periodLabel: string;
+  let summary: PeriodSummary;
+
+  if (hasSpecificDate) {
+    const d = new Date(rawDate! + "T00:00:00");
+    periodLabel = d.toLocaleDateString("es-CO", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+    summary = await getDaySummary(rawDate!);
+  } else {
+    periodLabel = getDateRange(period).label;
+    summary = await getPeriodSummary(period);
+  }
+
+  const todayStr = now.toISOString().split("T")[0];
+
+  const [monthlyData, topProducts, weekdayData, { recentSales, recentPurchases, upcomingAppointments }] =
     await Promise.all([
-      getPeriodSummary(period),
       getMonthlyData(currentYear),
       getTopProducts(currentYear),
       getWeekdayData(currentYear),
@@ -259,13 +321,13 @@ export default async function ReportsPage({
       </div>
 
       {/* Period Selector */}
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         {periods.map(({ key, label }) => (
           <a
             key={key}
             href={`/reports?period=${key}`}
             className={`rounded-lg px-4 py-2 text-sm font-medium transition-all ${
-              period === key
+              !hasSpecificDate && period === key
                 ? "bg-gradient-to-r from-[var(--primary)] to-[var(--primary-dark)] text-white shadow-lg shadow-[var(--primary)]/20"
                 : "border border-[var(--border)] bg-white text-[var(--muted-foreground)] hover:border-[var(--primary)] hover:text-[var(--primary)]"
             }`}
@@ -273,6 +335,27 @@ export default async function ReportsPage({
             {label}
           </a>
         ))}
+        <div className="h-6 w-px bg-[var(--border)] mx-1" />
+        <div className="relative">
+          <CalendarDays className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted-foreground)] pointer-events-none" />
+          <input
+            type="date"
+            value={hasSpecificDate ? rawDate! : ""}
+            onChange={(e) => {
+              const val = e.target.value;
+              if (val) window.location.href = `/reports?date=${val}`;
+            }}
+            className="h-10 rounded-lg border border-[var(--border)] bg-white pl-9 pr-3 text-sm text-[var(--foreground)] outline-none focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)] [color-scheme:light]"
+          />
+        </div>
+        {hasSpecificDate && (
+          <a
+            href="/reports?period=month"
+            className="text-xs text-[var(--muted-foreground)] underline hover:text-[var(--primary)]"
+          >
+            Limpiar
+          </a>
+        )}
       </div>
 
       {/* Period Label */}
