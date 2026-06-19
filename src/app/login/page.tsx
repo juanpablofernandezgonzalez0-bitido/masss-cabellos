@@ -45,10 +45,10 @@ export default function LoginPage() {
       <div className="w-full max-w-sm animate-in">
         {/* Logo */}
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center">
-            <img src="/logo.png" alt="Masss Cabellos" className="h-full w-full object-contain" />
+          <div className="mx-auto mb-5 flex h-32 w-32 items-center justify-center">
+            <img src="/logo.png" alt="Masss Cabellos" className="h-full w-full object-contain drop-shadow-sm" />
           </div>
-          <h1 className="text-xl font-bold text-[var(--foreground)]">Masss Cabellos</h1>
+          <h1 className="text-2xl font-bold text-[var(--foreground)]">Masss Cabellos</h1>
           <p className="mt-1 text-sm text-[var(--muted-foreground)]">Inicia sesión para continuar</p>
         </div>
 
