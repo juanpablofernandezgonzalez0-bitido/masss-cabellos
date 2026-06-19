@@ -1,7 +1,25 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Upload, X, ImageIcon } from "lucide-react";
+import { Upload, X, ImageIcon, Loader2 } from "lucide-react";
+
+function resizeImage(file: File, maxW = 600, maxH = 600, quality = 0.8): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      let { width, height } = img;
+      if (width > maxW) { height *= maxW / width; width = maxW; }
+      if (height > maxH) { width *= maxH / height; height = maxH; }
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      canvas.getContext("2d")!.drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL("image/jpeg", quality));
+    };
+    img.onerror = () => reject(new Error("Error al cargar la imagen"));
+    img.src = URL.createObjectURL(file);
+  });
+}
 
 interface ImageUploadProps {
   currentImage?: string;
@@ -23,20 +41,12 @@ export function ImageUpload({ currentImage, onImageUploaded }: ImageUploadProps)
     }
 
     setUploading(true);
-    const localPreview = URL.createObjectURL(file);
-    setPreview(localPreview);
-
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      const res = await fetch("/api/upload", { method: "POST", body: formData });
-      const data = await res.json();
-      if (data.url) {
-        onImageUploaded(data.url);
-      }
+      const dataUrl = await resizeImage(file);
+      setPreview(dataUrl);
+      onImageUploaded(dataUrl);
     } catch {
-      alert("Error al subir la imagen");
-      setPreview(currentImage || null);
+      alert("Error al procesar la imagen");
     } finally {
       setUploading(false);
     }
@@ -76,7 +86,7 @@ export function ImageUpload({ currentImage, onImageUploaded }: ImageUploadProps)
           className="group flex h-40 w-40 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-[var(--border)] bg-[var(--accent)] transition-all hover:border-[var(--primary)] hover:bg-[var(--primary)]/5 disabled:opacity-50"
         >
           {uploading ? (
-            <div className="h-7 w-7 animate-spin rounded-full border-2 border-[var(--primary)] border-t-transparent" />
+            <Loader2 className="h-6 w-6 animate-spin text-[var(--primary)]" />
           ) : (
             <>
               <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--muted)] transition-colors group-hover:bg-[var(--primary)]/10">
