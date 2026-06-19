@@ -45,8 +45,8 @@ export default function LoginPage() {
       <div className="w-full max-w-sm animate-in">
         {/* Logo */}
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-[var(--primary)] to-[var(--primary-dark)] shadow-lg shadow-[var(--primary)]/20">
-            <img src="/logo.png" alt="Masss Cabellos" className="h-10 w-10 object-contain brightness-0 invert" />
+          <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center">
+            <img src="/logo.png" alt="Masss Cabellos" className="h-full w-full object-contain" />
           </div>
           <h1 className="text-xl font-bold text-[var(--foreground)]">Masss Cabellos</h1>
           <p className="mt-1 text-sm text-[var(--muted-foreground)]">Inicia sesión para continuar</p>
