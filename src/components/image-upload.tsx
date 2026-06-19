@@ -3,7 +3,7 @@
 import { useState, useRef } from "react";
 import { Upload, X, ImageIcon, Loader2 } from "lucide-react";
 
-function resizeImage(file: File, maxW = 600, maxH = 600, quality = 0.8): Promise<string> {
+function resizeImage(file: File, maxW = 1600, maxH = 1600, quality = 0.95): Promise<string> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => {

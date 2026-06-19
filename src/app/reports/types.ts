@@ -3,6 +3,7 @@ export type Period = "today" | "week" | "month" | "year";
 export interface PeriodSummary {
   revenue: number;
   expenses: number;
+  payrollExpenses: number;
   profit: number;
   productsSold: number;
   appointments: number;

@@ -31,6 +31,9 @@ async function buildContext() {
     totalClients,
     allClients,
     recentPurchases,
+    workers,
+    monthPayroll,
+    todayPayroll,
   ] = await Promise.all([
     prisma.sale.findMany({ where: { createdAt: { gte: todayStart, lte: todayEnd } }, include: { items: true } }),
     prisma.sale.findMany({ where: { createdAt: { gte: yesterdayStart, lte: yesterdayEnd } }, include: { items: true } }),
@@ -44,6 +47,9 @@ async function buildContext() {
     prisma.client.count(),
     prisma.client.findMany({ include: { sales: { select: { total: true } } } }),
     prisma.purchase.findMany({ take: 5, orderBy: { createdAt: "desc" } }),
+    prisma.worker.findMany({ where: { isActive: true } }),
+    prisma.payroll.aggregate({ where: { paidAt: { gte: monthStart, lte: monthEnd } }, _sum: { amount: true }, _count: true }),
+    prisma.payroll.aggregate({ where: { paidAt: { gte: todayStart, lte: todayEnd } }, _sum: { amount: true }, _count: true }),
   ]);
 
   const lowStock = allProducts.filter((p) => p.stock < p.minStock);
@@ -92,8 +98,13 @@ ${clientsWithSpending.slice(0, 5).map((c) => `- ${c.name}: $${c.spent.toLocaleSt
 PLANES ACTIVOS:
 ${activePlans.map((p) => `- ${p.client.name}: ${p.description} (${p.remainingSessions}/${p.totalSessions} sesiones)`).join("\n") || "Ninguno"}
 
-COMPRAS RECIENTES:
+ COMPRAS RECIENTES:
 ${recentPurchases.map((p) => `- $${p.total.toLocaleString("es-CO")} (${p.concept}) - ${p.createdAt.toLocaleDateString("es-CO")}`).join("\n") || "Ninguna"}
+
+NÓMINA:
+- Trabajadoras activas: ${workers.length}
+- Pagado en nómina hoy: $${todayPayroll._sum.amount?.toLocaleString("es-CO") || "0"} (${todayPayroll._count} pago${todayPayroll._count !== 1 ? "s" : ""})
+- Pagado en nómina este mes: $${monthPayroll._sum.amount?.toLocaleString("es-CO") || "0"} (${monthPayroll._count} pago${monthPayroll._count !== 1 ? "s" : ""})
 
 ÚLTIMAS 20 VENTAS (con productos):
 ${allSales.map((s) => `- $${s.total.toLocaleString("es-CO")} ${s.client?.name ? "- "+s.client.name : ""} (${s.createdAt.toLocaleDateString("es-CO")})`).join("\n")}`;

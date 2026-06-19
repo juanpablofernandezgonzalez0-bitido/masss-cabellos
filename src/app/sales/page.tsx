@@ -3,16 +3,47 @@ import { prisma } from "@/lib/prisma";
 import { Plus, ShoppingCart, DollarSign, Receipt } from "lucide-react";
 import { DeleteButton } from "@/components/delete-button";
 import { formatDateTime, formatCurrency } from "@/lib/utils";
+import { SalesFilter } from "./sales-filter";
 
-async function getSales() {
+interface SearchParams {
+  q?: string;
+  date?: string;
+}
+
+async function getSales(searchParams: SearchParams) {
+  const where: Record<string, unknown> = {};
+  const AND: Record<string, unknown>[] = [];
+
+  if (searchParams.date && /^\d{4}-\d{2}-\d{2}$/.test(searchParams.date)) {
+    const start = new Date(searchParams.date + "T00:00:00");
+    const end = new Date(searchParams.date + "T23:59:59.999");
+    AND.push({ createdAt: { gte: start, lte: end } });
+  }
+
+  if (searchParams.q) {
+    AND.push({
+      client: { name: { contains: searchParams.q, mode: "insensitive" } },
+    });
+  }
+
+  if (AND.length > 0) where.AND = AND;
+
   return prisma.sale.findMany({
+    where,
     orderBy: { createdAt: "desc" },
     include: { client: true, items: { include: { product: true } } },
   });
 }
 
-export default async function SalesPage() {
-  const sales = await getSales();
+export default async function SalesPage({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParams>;
+}) {
+  const params = await searchParams;
+  const sales = await getSales(params);
+  const todayStr = new Date().toISOString().split("T")[0];
+  const hasFilters = params.q || params.date;
 
   return (
     <div className="space-y-6">
@@ -35,7 +66,15 @@ export default async function SalesPage() {
         </Link>
       </div>
 
+      {/* Filters */}
+      <SalesFilter q={params.q} date={params.date} />
+
       <div className="overflow-hidden rounded-2xl border border-[var(--border)] bg-white shadow-[var(--shadow-sm)]">
+        {hasFilters && (
+          <div className="border-b border-[var(--border)] bg-[var(--accent)] px-5 py-2.5 text-sm text-[var(--muted-foreground)]">
+            {sales.length} resultado{sales.length !== 1 ? "s" : ""}
+          </div>
+        )}
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
@@ -93,16 +132,22 @@ export default async function SalesPage() {
               <ShoppingCart className="h-8 w-8 text-[var(--muted-foreground)]" />
             </div>
             <div className="text-center">
-              <p className="text-lg font-medium text-[var(--foreground)]">No hay ventas registradas</p>
-              <p className="mt-1 text-sm text-[var(--muted-foreground)]">Registra la primera venta del negocio</p>
+              <p className="text-lg font-medium text-[var(--foreground)]">
+                {hasFilters ? "No se encontraron ventas" : "No hay ventas registradas"}
+              </p>
+              <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+                {hasFilters ? "Intenta con otros filtros" : "Registra la primera venta del negocio"}
+              </p>
             </div>
-            <Link
-              href="/sales/new"
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[var(--primary)] to-[var(--primary-dark)] px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition-all hover:shadow-xl"
-            >
-              <Plus className="h-4 w-4" />
-              Registrar primera venta
-            </Link>
+            {!hasFilters && (
+              <Link
+                href="/sales/new"
+                className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[var(--primary)] to-[var(--primary-dark)] px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition-all hover:shadow-xl"
+              >
+                <Plus className="h-4 w-4" />
+                Registrar primera venta
+              </Link>
+            )}
           </div>
         )}
       </div>

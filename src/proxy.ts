@@ -10,6 +10,8 @@ const adminOnlyPaths = [
   "/products/new",
   "/purchases",
   "/purchases/new",
+  "/payroll",
+  "/api/payroll",
   "/api/upload",
 ];
 

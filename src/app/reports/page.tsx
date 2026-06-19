@@ -44,23 +44,30 @@ function getDateRange(period: Period) {
 async function getPeriodSummary(period: Period): Promise<PeriodSummary> {
   const { start, end } = getDateRange(period);
 
-  const sales = await prisma.sale.findMany({
-    where: { createdAt: { gte: start, lte: end } },
-    include: { items: true, client: { select: { id: true, name: true } } },
-  });
-  const purchases = await prisma.purchase.findMany({
-    where: { createdAt: { gte: start, lte: end } },
-    include: { items: true },
-  });
-  const appointments = await prisma.appointment.findMany({
-    where: { date: { gte: start, lte: end } },
-  });
-  const activePlans = await prisma.treatmentPlan.findMany({
-    where: { status: "activo" },
-  });
+  const [sales, purchases, appointments, activePlans, payrolls] = await Promise.all([
+    prisma.sale.findMany({
+      where: { createdAt: { gte: start, lte: end } },
+      include: { items: true, client: { select: { id: true, name: true } } },
+    }),
+    prisma.purchase.findMany({
+      where: { createdAt: { gte: start, lte: end } },
+      include: { items: true },
+    }),
+    prisma.appointment.findMany({
+      where: { date: { gte: start, lte: end } },
+    }),
+    prisma.treatmentPlan.findMany({
+      where: { status: "activo" },
+    }),
+    prisma.payroll.findMany({
+      where: { paidAt: { gte: start, lte: end } },
+    }),
+  ]);
 
   const revenue = sales.reduce((s, x) => s + x.total, 0);
-  const expenses = purchases.reduce((s, x) => s + x.total, 0);
+  const purchaseExpenses = purchases.reduce((s, x) => s + x.total, 0);
+  const payrollExpenses = payrolls.reduce((s, x) => s + x.amount, 0);
+  const expenses = purchaseExpenses + payrollExpenses;
   const productsSold = sales.reduce((s, x) => s + x.items.reduce((si, item) => si + item.quantity, 0), 0);
   const productsPurchased = purchases.reduce((s, x) => s + x.items.reduce((si, item) => si + item.quantity, 0), 0);
   const uniqueClients = new Set([
@@ -73,6 +80,7 @@ async function getPeriodSummary(period: Period): Promise<PeriodSummary> {
   return {
     revenue,
     expenses,
+    payrollExpenses,
     profit: revenue - expenses,
     productsSold,
     appointments: appointments.length,
@@ -89,23 +97,30 @@ async function getDaySummary(dateStr: string): Promise<PeriodSummary> {
   const start = new Date(dateStr + "T00:00:00");
   const end = new Date(dateStr + "T23:59:59.999");
 
-  const sales = await prisma.sale.findMany({
-    where: { createdAt: { gte: start, lte: end } },
-    include: { items: true, client: { select: { id: true, name: true } } },
-  });
-  const purchases = await prisma.purchase.findMany({
-    where: { createdAt: { gte: start, lte: end } },
-    include: { items: true },
-  });
-  const appointments = await prisma.appointment.findMany({
-    where: { date: { gte: start, lte: end } },
-  });
-  const activePlans = await prisma.treatmentPlan.findMany({
-    where: { status: "activo" },
-  });
+  const [sales, purchases, appointments, activePlans, payrolls] = await Promise.all([
+    prisma.sale.findMany({
+      where: { createdAt: { gte: start, lte: end } },
+      include: { items: true, client: { select: { id: true, name: true } } },
+    }),
+    prisma.purchase.findMany({
+      where: { createdAt: { gte: start, lte: end } },
+      include: { items: true },
+    }),
+    prisma.appointment.findMany({
+      where: { date: { gte: start, lte: end } },
+    }),
+    prisma.treatmentPlan.findMany({
+      where: { status: "activo" },
+    }),
+    prisma.payroll.findMany({
+      where: { paidAt: { gte: start, lte: end } },
+    }),
+  ]);
 
   const revenue = sales.reduce((s, x) => s + x.total, 0);
-  const expenses = purchases.reduce((s, x) => s + x.total, 0);
+  const purchaseExpenses = purchases.reduce((s, x) => s + x.total, 0);
+  const payrollExpenses = payrolls.reduce((s, x) => s + x.amount, 0);
+  const expenses = purchaseExpenses + payrollExpenses;
   const productsSold = sales.reduce((s, x) => s + x.items.reduce((si, item) => si + item.quantity, 0), 0);
   const productsPurchased = purchases.reduce((s, x) => s + x.items.reduce((si, item) => si + item.quantity, 0), 0);
   const uniqueClients = new Set([
@@ -118,6 +133,7 @@ async function getDaySummary(dateStr: string): Promise<PeriodSummary> {
   return {
     revenue,
     expenses,
+    payrollExpenses,
     profit: revenue - expenses,
     productsSold,
     appointments: appointments.length,
@@ -131,20 +147,28 @@ async function getDaySummary(dateStr: string): Promise<PeriodSummary> {
 }
 
 async function getMonthlyData(year: number): Promise<MonthlyData[]> {
-  const sales = await prisma.sale.findMany({
-    where: { createdAt: { gte: new Date(year, 0, 1), lte: new Date(year, 11, 31, 23, 59, 59) } },
-  });
-  const purchases = await prisma.purchase.findMany({
-    where: { createdAt: { gte: new Date(year, 0, 1), lte: new Date(year, 11, 31, 23, 59, 59) } },
-  });
+  const [sales, purchases, payrolls] = await Promise.all([
+    prisma.sale.findMany({
+      where: { createdAt: { gte: new Date(year, 0, 1), lte: new Date(year, 11, 31, 23, 59, 59) } },
+    }),
+    prisma.purchase.findMany({
+      where: { createdAt: { gte: new Date(year, 0, 1), lte: new Date(year, 11, 31, 23, 59, 59) } },
+    }),
+    prisma.payroll.findMany({
+      where: { paidAt: { gte: new Date(year, 0, 1), lte: new Date(year, 11, 31, 23, 59, 59) } },
+    }),
+  ]);
 
   return Array.from({ length: 12 }, (_, i) => {
     const ms = sales.filter((s) => s.createdAt.getMonth() === i);
     const mp = purchases.filter((p) => p.createdAt.getMonth() === i);
+    const mpr = payrolls.filter((p) => new Date(p.paidAt).getMonth() === i);
+    const gastosCompras = mp.reduce((s, x) => s + x.total, 0);
+    const gastosNomina = mpr.reduce((s, x) => s + x.amount, 0);
     return {
       month: ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"][i],
       ingresos: ms.reduce((s, x) => s + x.total, 0),
-      gastos: mp.reduce((s, x) => s + x.total, 0),
+      gastos: gastosCompras + gastosNomina,
     };
   });
 }
@@ -232,11 +256,11 @@ function getDayStats(summary: PeriodSummary) {
   return [
     { label: "Ingresos", value: summary.revenue, icon: DollarSign, gradient: "from-[#7ab893] to-[#5fa07a]", light: "bg-[#7ab893]/10", format: "currency" as const },
     { label: "Gastos", value: summary.expenses, icon: ShoppingCart, gradient: "from-[#e88aa5] to-[#d4708e]", light: "bg-[#e88aa5]/10", format: "currency" as const },
+    { label: "Nómina", value: summary.payrollExpenses, icon: DollarSign, gradient: "from-[#e88aa5] to-[#d4708e]", light: "bg-[#e88aa5]/10", format: "currency" as const },
     { label: "Ganancia", value: summary.profit, icon: TrendingUp, gradient: "from-[#8ab4c8] to-[#7098b0]", light: "bg-[#8ab4c8]/10", format: "currency" as const },
     { label: "Prod. Vendidos", value: summary.productsSold, icon: Package, gradient: "from-[#f2b5a3] to-[#e09a88]", light: "bg-[#f2b5a3]/10", format: "number" as const },
     { label: "Citas", value: summary.appointments, icon: Calendar, gradient: "from-[#a78bfa] to-[#8b5cf6]", light: "bg-[#a78bfa]/10", format: "number" as const },
     { label: "Planes Activos", value: summary.activePlans, icon: Star, gradient: "from-[#fbbf24] to-[#f59e0b]", light: "bg-[#fbbf24]/10", format: "number" as const },
-    { label: "Prod. Comprados", value: summary.productsPurchased, icon: Truck, gradient: "from-[#34d399] to-[#10b981]", light: "bg-[#34d399]/10", format: "number" as const },
     { label: "Clientes Atend.", value: summary.uniqueClients, icon: Users, gradient: "from-[#f472b6] to-[#ec4899]", light: "bg-[#f472b6]/10", format: "number" as const },
   ];
 }
@@ -315,8 +339,8 @@ export default async function ReportsPage({
             <BarChart3 className="h-5 w-5 text-[var(--secondary)]" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-[var(--foreground)]">Reportes</h1>
-            <p className="text-sm text-[var(--muted-foreground)]">Análisis y estadísticas del negocio</p>
+            <h1 className="text-2xl font-bold text-[var(--foreground)]">Indicadores</h1>
+            <p className="text-sm text-[var(--muted-foreground)]">Métricas y estadísticas del negocio</p>
           </div>
         </div>
       </div>

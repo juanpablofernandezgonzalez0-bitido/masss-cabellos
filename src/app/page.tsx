@@ -3,33 +3,42 @@ import { Package, Users, Calendar, ShoppingCart, AlertTriangle, TrendingUp, Doll
 import Link from "next/link";
 
 async function getDashboardData() {
-  const now = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const todayEnd = new Date(todayStart.getTime() + 86_400_000);
+  try {
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayEnd = new Date(todayStart.getTime() + 86_400_000);
 
-  const [productCount, clientCount, appointmentCount, salesCount, allProducts, recentSales, recentAppointments, totalRevenue, todaySales, todayAppts] =
-    await Promise.all([
-      prisma.product.count({ where: { isActive: true } }),
-      prisma.client.count(),
-      prisma.appointment.count({ where: { status: "pendiente" } }),
-      prisma.sale.count(),
-      prisma.product.findMany({ where: { isActive: true } }),
-      prisma.sale.findMany({ orderBy: { createdAt: "desc" }, take: 5, include: { client: true, items: { include: { product: true } } } }),
-      prisma.appointment.findMany({ orderBy: { date: "asc" }, take: 5, include: { client: true }, where: { status: "pendiente" } }),
-      prisma.sale.aggregate({ _sum: { total: true } }),
-      prisma.sale.findMany({ where: { createdAt: { gte: todayStart, lte: todayEnd } } }),
-      prisma.appointment.count({ where: { date: { gte: todayStart, lte: todayEnd }, status: "pendiente" } }),
-    ]);
+    const [productCount, clientCount, appointmentCount, salesCount, allProducts, recentSales, recentAppointments, totalRevenue, todaySales, todayAppts] =
+      await Promise.all([
+        prisma.product.count({ where: { isActive: true } }),
+        prisma.client.count(),
+        prisma.appointment.count({ where: { status: "pendiente" } }),
+        prisma.sale.count(),
+        prisma.product.findMany({ where: { isActive: true } }),
+        prisma.sale.findMany({ orderBy: { createdAt: "desc" }, take: 5, include: { client: true, items: { include: { product: true } } } }),
+        prisma.appointment.findMany({ orderBy: { date: "asc" }, take: 5, include: { client: true }, where: { status: "pendiente" } }),
+        prisma.sale.aggregate({ _sum: { total: true } }),
+        prisma.sale.findMany({ where: { createdAt: { gte: todayStart, lte: todayEnd } } }),
+        prisma.appointment.count({ where: { date: { gte: todayStart, lte: todayEnd }, status: "pendiente" } }),
+      ]);
 
-  const lowStockProducts = allProducts.filter((p) => p.stock < p.minStock).slice(0, 5);
-  const todayRevenue = todaySales.reduce((s, x) => s + x.total, 0);
+    const lowStockProducts = allProducts.filter((p) => p.stock < p.minStock).slice(0, 5);
+    const todayRevenue = todaySales.reduce((s, x) => s + x.total, 0);
 
-  return {
-    productCount, clientCount, appointmentCount, salesCount,
-    lowStockProducts, recentSales, recentAppointments,
-    totalRevenue: totalRevenue._sum.total || 0,
-    todaySales: todaySales.length, todayRevenue, todayAppts,
-  };
+    return {
+      productCount, clientCount, appointmentCount, salesCount,
+      lowStockProducts, recentSales, recentAppointments,
+      totalRevenue: totalRevenue._sum.total || 0,
+      todaySales: todaySales.length, todayRevenue, todayAppts,
+    };
+  } catch (error) {
+    console.error("Error cargando dashboard:", error);
+    return {
+      productCount: 0, clientCount: 0, appointmentCount: 0, salesCount: 0,
+      lowStockProducts: [], recentSales: [], recentAppointments: [],
+      totalRevenue: 0, todaySales: 0, todayRevenue: 0, todayAppts: 0,
+    };
+  }
 }
 
 export default async function Home() {
@@ -62,8 +71,8 @@ export default async function Home() {
         <div className="flex items-center gap-3 rounded-2xl bg-gradient-to-r from-pink-500/10 to-rose-500/10 px-5 py-3">
           <DollarSign className="h-5 w-5 text-pink-500" />
           <div>
-            <p className="text-xs font-medium text-pink-600/70 uppercase tracking-wider">Ingresos Totales</p>
-            <p className="text-lg font-bold text-pink-600">${d.totalRevenue.toLocaleString()}</p>
+              <p className="text-xs font-medium text-pink-600/70 uppercase tracking-wider">Ingresos Hoy</p>
+              <p className="text-lg font-bold text-pink-600">${d.todayRevenue.toLocaleString()}</p>
           </div>
         </div>
       </div>

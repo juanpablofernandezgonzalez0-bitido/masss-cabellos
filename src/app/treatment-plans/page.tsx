@@ -3,9 +3,13 @@ import { prisma } from "@/lib/prisma";
 import { Plus, ClipboardList, User, DollarSign, Calendar } from "lucide-react";
 import { DeleteButton } from "@/components/delete-button";
 import { formatDate, formatCurrency } from "@/lib/utils";
+import { PlansFilter } from "./plans-filter";
 
-async function getTreatmentPlans() {
+async function getTreatmentPlans(q?: string) {
   return prisma.treatmentPlan.findMany({
+    ...(q ? {
+      where: { client: { name: { contains: q, mode: "insensitive" } } },
+    } : {}),
     orderBy: { createdAt: "desc" },
     include: {
       client: true,
@@ -26,8 +30,13 @@ const statusLabels: Record<string, string> = {
   cancelado: "Cancelado",
 };
 
-export default async function TreatmentPlansPage() {
-  const plans = await getTreatmentPlans();
+export default async function TreatmentPlansPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
+  const { q } = await searchParams;
+  const plans = await getTreatmentPlans(q);
 
   return (
     <div className="space-y-6">
@@ -50,7 +59,14 @@ export default async function TreatmentPlansPage() {
         </Link>
       </div>
 
+      <PlansFilter q={q} />
+
       <div className="overflow-hidden rounded-2xl border border-[var(--border)] bg-white shadow-[var(--shadow-sm)]">
+        {q && (
+          <div className="border-b border-[var(--border)] bg-[var(--accent)] px-5 py-2.5 text-sm text-[var(--muted-foreground)]">
+            {plans.length} resultado{plans.length !== 1 ? "s" : ""}
+          </div>
+        )}
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
@@ -125,16 +141,22 @@ export default async function TreatmentPlansPage() {
               <ClipboardList className="h-8 w-8 text-[var(--muted-foreground)]" />
             </div>
             <div className="text-center">
-              <p className="text-lg font-medium text-[var(--foreground)]">No hay planes de tratamiento</p>
-              <p className="mt-1 text-sm text-[var(--muted-foreground)]">Crea un plan para empezar a programar sesiones</p>
+              <p className="text-lg font-medium text-[var(--foreground)]">
+                {q ? "No se encontraron planes" : "No hay planes de tratamiento"}
+              </p>
+              <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+                {q ? "Intenta con otro término de búsqueda" : "Crea un plan para empezar a programar sesiones"}
+              </p>
             </div>
-            <Link
-              href="/treatment-plans/new"
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[var(--primary)] to-[var(--primary-dark)] px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition-all hover:shadow-xl"
-            >
-              <Plus className="h-4 w-4" />
-              Crear primer plan
-            </Link>
+            {!q && (
+              <Link
+                href="/treatment-plans/new"
+                className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[var(--primary)] to-[var(--primary-dark)] px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition-all hover:shadow-xl"
+              >
+                <Plus className="h-4 w-4" />
+                Crear primer plan
+              </Link>
+            )}
           </div>
         )}
       </div>

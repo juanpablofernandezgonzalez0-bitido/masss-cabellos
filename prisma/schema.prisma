@@ -131,3 +131,28 @@ model PurchaseItem {
   purchase Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
   product  Product  @relation(fields: [productId], references: [id])
 }
+
+model Worker {
+  id        Int       @id @default(autoincrement())
+  name      String
+  phone     String    @default("")
+  image     String    @default("")
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  payrolls Payroll[]
+}
+
+model Payroll {
+  id         Int      @id @default(autoincrement())
+  workerId   Int
+  daysWorked Int      @default(0)
+  amount     Float    @default(0)
+  notes      String   @default("")
+  paidAt     DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  worker Worker @relation(fields: [workerId], references: [id], onDelete: Cascade)
+}
