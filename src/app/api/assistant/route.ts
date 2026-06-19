@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import OpenAI from "openai";
 import { getCurrentUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY ?? "");
-const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+const groq = new OpenAI({
+  baseURL: "https://api.groq.com/openai/v1",
+  apiKey: process.env.GROQ_API_KEY ?? "",
+});
 
 async function buildContext() {
   const now = new Date();
@@ -38,7 +40,7 @@ async function buildContext() {
   const monthRevenue = monthSales.reduce((s, x) => s + x.total, 0);
   const todayProductsSold = todaySales.reduce((s, x) => s + x.items.reduce((si, i) => si + i.quantity, 0), 0);
 
-  const productsJson = lowStockProducts.map((p) => `"${p.name}" (stock: ${p.stock}, mínimo: ${p.minStock})`).join("\n");
+  const productsStr = lowStockProducts.map((p) => `"${p.name}" (stock: ${p.stock}, mínimo: ${p.minStock})`).join("\n");
 
   return `FECHA ACTUAL: ${now.toLocaleDateString("es-CO", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
 
@@ -53,7 +55,7 @@ RESUMEN DEL MES:
 INVENTARIO:
 - Total productos activos: ${totalProducts}
 - Productos por debajo del stock mínimo:
-${productsJson || "Ninguno"}
+${productsStr || "Ninguno"}
 
 CLIENTES:
 - Total clientes registrados: ${totalClients}
@@ -83,26 +85,31 @@ export async function POST(req: Request) {
 
     const context = await buildContext();
 
-    const prompt = `Eres un asistente interno de un salón de belleza llamado "Masss Cabellos". 
+    const completion = await groq.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
+      messages: [
+        {
+          role: "system",
+          content: `Eres un asistente interno de un salón de belleza llamado "Masss Cabellos". 
 Responde en español de forma clara, amable y concisa (máximo 3 párrafos).
 Usa el contexto actual del negocio para responder preguntas del staff.
+Si la pregunta requiere datos que no están en el contexto, indica amablemente que no tienes esa información y sugiere qué más podrías consultar.
 
 CONTEXTO ACTUAL DEL NEGOCIO:
-${context}
+${context}`,
+        },
+        { role: "user", content: message },
+      ],
+      temperature: 0.7,
+      max_tokens: 500,
+    });
 
-PREGUNTA DEL STAFF: ${message}
-
-Si la pregunta requiere datos que no están en el contexto, indica amablemente que no tienes esa información y sugiere qué más podrías consultar.`;
-
-    const result = await model.generateContent(prompt);
-    const response = result.response.text();
+    const response = completion.choices[0]?.message?.content ?? "No pude generar una respuesta. Intenta de nuevo.";
 
     return NextResponse.json({ response });
   } catch (error) {
     console.error("Assistant error:", error);
-    return NextResponse.json(
-      { error: "Error al procesar la consulta. Verifica que GEMINI_API_KEY esté configurada." },
-      { status: 500 }
-    );
+    const msg = error instanceof Error ? error.message : "Error desconocido";
+    return NextResponse.json({ error: `Error: ${msg}` }, { status: 500 });
   }
 }
