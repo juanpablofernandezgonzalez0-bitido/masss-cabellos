@@ -1,18 +1,35 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { Plus, Users, Phone, Mail, Calendar, ShoppingBag } from "lucide-react";
+import { Plus, Users, Phone, Mail, Calendar, ShoppingBag, SearchX } from "lucide-react";
 import { DeleteButton } from "@/components/delete-button";
 import { formatDate } from "@/lib/utils";
+import { ClientsFilter } from "./clients-filter";
 
-async function getClients() {
+async function getClients(q?: string) {
+  const where = q
+    ? {
+        OR: [
+          { name: { contains: q, mode: "insensitive" as const } },
+          { phone: { contains: q } },
+          { email: { contains: q, mode: "insensitive" as const } },
+        ],
+      }
+    : undefined;
+
   return prisma.client.findMany({
+    where,
     orderBy: { createdAt: "desc" },
     include: { _count: { select: { appointments: true, sales: true } } },
   });
 }
 
-export default async function ClientsPage() {
-  const clients = await getClients();
+export default async function ClientsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
+  const { q } = await searchParams;
+  const clients = await getClients(q);
 
   return (
     <div className="space-y-6">
@@ -23,7 +40,11 @@ export default async function ClientsPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-[var(--foreground)]">Clientes</h1>
-            <p className="text-sm text-[var(--muted-foreground)]">Gestiona la información de tus clientes</p>
+            <p className="text-sm text-[var(--muted-foreground)]">
+              {q
+                ? `Resultados para "${q}"`
+                : "Gestiona la información de tus clientes"}
+            </p>
           </div>
         </div>
         <Link
@@ -34,6 +55,8 @@ export default async function ClientsPage() {
           Nuevo Cliente
         </Link>
       </div>
+
+      <ClientsFilter q={q} />
 
       <div className="overflow-hidden rounded-2xl border border-[var(--border)] bg-white shadow-[var(--shadow-sm)]">
         <div className="overflow-x-auto">
@@ -106,19 +129,36 @@ export default async function ClientsPage() {
         {clients.length === 0 && (
           <div className="flex flex-col items-center gap-4 p-16">
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--muted)]">
-              <Users className="h-8 w-8 text-[var(--muted-foreground)]" />
+              {q ? (
+                <SearchX className="h-8 w-8 text-[var(--muted-foreground)]" />
+              ) : (
+                <Users className="h-8 w-8 text-[var(--muted-foreground)]" />
+              )}
             </div>
             <div className="text-center">
-              <p className="text-lg font-medium text-[var(--foreground)]">No hay clientes registrados</p>
-              <p className="mt-1 text-sm text-[var(--muted-foreground)]">Comienza agregando tu primer cliente</p>
+              {q ? (
+                <>
+                  <p className="text-lg font-medium text-[var(--foreground)]">Sin resultados</p>
+                  <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+                    No encontramos clientes con <strong>"{q}"</strong>
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-lg font-medium text-[var(--foreground)]">No hay clientes registrados</p>
+                  <p className="mt-1 text-sm text-[var(--muted-foreground)]">Comienza agregando tu primer cliente</p>
+                </>
+              )}
             </div>
-            <Link
-              href="/clients/new"
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[var(--primary)] to-[var(--primary-dark)] px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition-all hover:shadow-xl"
-            >
-              <Plus className="h-4 w-4" />
-              Crear primer cliente
-            </Link>
+            {!q && (
+              <Link
+                href="/clients/new"
+                className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[var(--primary)] to-[var(--primary-dark)] px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition-all hover:shadow-xl"
+              >
+                <Plus className="h-4 w-4" />
+                Crear primer cliente
+              </Link>
+            )}
           </div>
         )}
       </div>
