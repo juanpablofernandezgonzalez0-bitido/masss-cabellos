@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Sidebar } from "@/components/sidebar";
 import { Header } from "@/components/header";
+import { AssistantButton } from "@/components/assistant-button";
 
 interface LayoutClientProps {
   role: "admin" | "worker";
@@ -31,6 +32,7 @@ export function LayoutClient({ role, user, children }: LayoutClientProps) {
         <main className="relative flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 animate-in">
           {children}
         </main>
+        <AssistantButton />
       </div>
     </div>
   );
