@@ -43,13 +43,15 @@ export function Header({ user, onToggleSidebar }: HeaderProps) {
             })}
           </span>
         </div>
-        <Link
-          href="/settings"
-          className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border)] bg-white text-[var(--muted-foreground)] shadow-[var(--shadow-sm)] transition-all hover:bg-[var(--accent)] hover:text-[var(--foreground)]"
-          title="Configuración"
-        >
-          <Settings className="h-4.5 w-4.5" />
-        </Link>
+        {user.role === "admin" && (
+          <Link
+            href="/settings"
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border)] bg-white text-[var(--muted-foreground)] shadow-[var(--shadow-sm)] transition-all hover:bg-[var(--accent)] hover:text-[var(--foreground)]"
+            title="Configuración"
+          >
+            <Settings className="h-4.5 w-4.5" />
+          </Link>
+        )}
         <form action={logout}>
           <button
             type="submit"

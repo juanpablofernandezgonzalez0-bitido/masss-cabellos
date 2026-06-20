@@ -11,24 +11,26 @@ export async function PATCH(request: Request) {
     if (!token) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
     const payload = await verifyToken(token);
-    if (!payload) return NextResponse.json({ error: "Sesión inválida" }, { status: 401 });
+    if (!payload || payload.role !== "admin") {
+      return NextResponse.json({ error: "Solo administradores pueden cambiar contraseñas" }, { status: 403 });
+    }
 
-    const { currentPassword, newPassword } = await request.json();
-    if (!currentPassword || !newPassword) {
-      return NextResponse.json({ error: "Todos los campos son requeridos" }, { status: 400 });
+    const { userId, newPassword } = await request.json();
+    if (!newPassword) {
+      return NextResponse.json({ error: "La nueva contraseña es requerida" }, { status: 400 });
     }
     if (newPassword.length < 6) {
-      return NextResponse.json({ error: "La nueva contraseña debe tener al menos 6 caracteres" }, { status: 400 });
+      return NextResponse.json({ error: "La contraseña debe tener al menos 6 caracteres" }, { status: 400 });
     }
 
-    const user = await prisma.user.findUnique({ where: { id: payload.id } });
+    const targetId = userId ? parseInt(userId) : payload.id;
+    if (isNaN(targetId)) return NextResponse.json({ error: "ID inválido" }, { status: 400 });
+
+    const user = await prisma.user.findUnique({ where: { id: targetId } });
     if (!user) return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
 
-    const valid = await bcrypt.compare(currentPassword, user.password);
-    if (!valid) return NextResponse.json({ error: "La contraseña actual es incorrecta" }, { status: 400 });
-
     const hashed = await bcrypt.hash(newPassword, 10);
-    await prisma.user.update({ where: { id: user.id }, data: { password: hashed } });
+    await prisma.user.update({ where: { id: targetId }, data: { password: hashed } });
 
     return NextResponse.json({ success: true });
   } catch (error) {
