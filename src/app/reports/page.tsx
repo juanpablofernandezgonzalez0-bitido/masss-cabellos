@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import {
   BarChart3, TrendingUp, DollarSign, ShoppingCart, Calendar,
-  Package, Users, Receipt, Truck, Clock, Ticket, Star,
+  Package, Users, Receipt, Truck, Clock, Star,
   ArrowUpRight, ArrowDownRight,
 } from "lucide-react";
 import { MonthlySalesChart } from "./monthly-sales-chart";
@@ -267,7 +267,7 @@ function getDayStats(summary: PeriodSummary) {
 
 function getMetricCards(summary: PeriodSummary) {
   return [
-    { label: "Ticket Promedio", value: formatCurrency(summary.avgTicket), icon: Ticket, color: "text-[var(--info)]", bg: "bg-[var(--info)]/10" },
+
     { label: "Ventas Realizadas", value: summary.salesCount, icon: Receipt, color: "text-[var(--success)]", bg: "bg-[var(--success)]/10" },
     { label: "Compras Realizadas", value: summary.purchasesCount, icon: Truck, color: "text-[var(--primary)]", bg: "bg-[var(--primary)]/10" },
     {

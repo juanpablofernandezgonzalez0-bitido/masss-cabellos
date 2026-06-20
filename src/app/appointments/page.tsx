@@ -147,14 +147,21 @@ export default async function AppointmentsPage({
                   </td>
                   <td className="px-4 py-3.5 text-right">
                     <div className="flex items-center justify-end gap-1.5">
-                      {a.status === "pendiente" && !a.saleId && (
+                      {a.saleId ? (
+                        <Link
+                          href={`/sales/${a.saleId}`}
+                          className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium text-[var(--info)] transition-all hover:bg-[var(--info)]/10"
+                        >
+                          Ver Factura
+                        </Link>
+                      ) : a.status === "pendiente" && !a.treatmentPlanId ? (
                         <Link
                           href={`/sales/new?appointmentId=${a.id}`}
                           className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium text-[var(--success)] transition-all hover:bg-[var(--success)]/10"
                         >
                           <DollarSign className="h-3.5 w-3.5" /> Facturar
                         </Link>
-                      )}
+                      ) : null}
                       {a.status === "pendiente" && <CompleteButton id={a.id} planId={a.treatmentPlanId} />}
                       <Link
                         href={`/appointments/${a.id}/edit`}

@@ -174,8 +174,17 @@ export default async function TreatmentPlanDetailPage({
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  {a.status === "pendiente" && <CompleteButton id={a.id} planId={a.treatmentPlanId} />}
-                  {a.status === "completada" && (
+                  {a.saleId ? (
+                    <Link
+                      href={`/sales/${a.saleId}`}
+                      className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium text-[var(--info)] transition-all hover:bg-[var(--info)]/10"
+                    >
+                      Ver Factura
+                    </Link>
+                  ) : a.status === "pendiente" ? (
+                    <CompleteButton id={a.id} planId={a.treatmentPlanId} />
+                  ) : null}
+                  {a.status === "completada" && !a.saleId && (
                     <span className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium text-[var(--success)]">
                       <CheckCircle className="h-3.5 w-3.5" /> Completada
                     </span>

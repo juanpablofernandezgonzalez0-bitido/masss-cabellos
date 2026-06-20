@@ -68,7 +68,7 @@ export function PdfDownloadButton({ invoiceNum, total, paid, change, clientName,
       };
       const line = () => { pdf.setDrawColor(0); pdf.setLineWidth(0.3); pdf.line(ml, y, ml + cw, y); };
 
-      cen("MASS CABELLOS", 14, true);
+      cen("MASSS CABELLOS", 14, true);
       y += 6;
       cen("Estética y Bienestar", 8);
       y += 4;

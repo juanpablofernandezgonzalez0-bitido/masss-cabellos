@@ -16,7 +16,7 @@ async function getDashboardData() {
         prisma.sale.count(),
         prisma.product.findMany({ where: { isActive: true } }),
         prisma.sale.findMany({ orderBy: { createdAt: "desc" }, take: 5, include: { client: true, items: { include: { product: true } } } }),
-        prisma.appointment.findMany({ orderBy: { date: "asc" }, take: 5, include: { client: true }, where: { status: "pendiente" } }),
+        prisma.appointment.findMany({ orderBy: [{ date: "asc" }, { time: "asc" }], take: 5, include: { client: true }, where: { status: "pendiente", date: { gte: todayStart } } }),
         prisma.sale.aggregate({ _sum: { total: true } }),
         prisma.sale.findMany({ where: { createdAt: { gte: todayStart, lte: todayEnd } } }),
         prisma.appointment.count({ where: { date: { gte: todayStart, lte: todayEnd }, status: "pendiente" } }),

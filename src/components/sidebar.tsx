@@ -15,6 +15,7 @@ import {
   ClipboardList,
   Sun,
   DollarSign,
+  Settings,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -38,6 +39,7 @@ export function Sidebar({ role, isOpen, onClose }: SidebarProps) {
     ...(isAdmin ? [{ href: "/reports", label: "Indicadores", icon: BarChart3 }] : []),
     ...(isAdmin ? [{ href: "/day-summary", label: "Resumen del Día", icon: Sun }] : []),
     ...(isAdmin ? [{ href: "/payroll", label: "Nómina", icon: DollarSign }] : []),
+    { href: "/settings", label: "Configuración", icon: Settings },
   ];
 
   return (

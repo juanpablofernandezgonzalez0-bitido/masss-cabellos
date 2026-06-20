@@ -51,7 +51,7 @@ export default async function SaleInvoicePage({ params }: { params: Promise<{ id
       <div className="overflow-hidden rounded-2xl border border-[var(--border)] bg-white shadow-[var(--shadow-sm)]">
         <div className="border-b border-[var(--border)] bg-gradient-to-r from-[#fdf8f6] to-[#fef0f0] px-4 py-4 text-center">
           <img src="/logo.png" alt="Masss Cabellos" className="mx-auto h-14 w-auto mb-1" />
-          <h1 className="text-lg font-bold text-[var(--foreground)]">MASS CABELLOS</h1>
+          <h1 className="text-lg font-bold text-[var(--foreground)]">MASSS CABELLOS</h1>
           <p className="text-xs text-[var(--muted-foreground)]">Estética y Bienestar</p>
           <p className="mt-1 text-xs text-[var(--muted-foreground)]">{dateStr}</p>
         </div>

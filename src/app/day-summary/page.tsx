@@ -106,15 +106,26 @@ export default async function DaySummaryPage({
   const { summary, sales, appointments, hourlyData, topProducts } = data;
 
   const summaryCards = [
-    { label: "Ingresos", value: summary.revenue, icon: DollarSign, gradient: "from-[#7ab893] to-[#5fa07a]", light: "bg-[#7ab893]/10", format: "currency" as const },
-    { label: "Gastos", value: summary.expenses, icon: ShoppingCart, gradient: "from-[#e88aa5] to-[#d4708e]", light: "bg-[#e88aa5]/10", format: "currency" as const },
-    { label: "Ganancia", value: summary.profit, icon: TrendingUp, gradient: "from-[#8ab4c8] to-[#7098b0]", light: "bg-[#8ab4c8]/10", format: "currency" as const },
-    { label: "Ventas", value: summary.salesCount, icon: Receipt, gradient: "from-[#34d399] to-[#10b981]", light: "bg-[#34d399]/10", format: "number" as const },
-    { label: "Citas", value: summary.appointmentsCount, icon: Calendar, gradient: "from-[#a78bfa] to-[#8b5cf6]", light: "bg-[#a78bfa]/10", format: "number" as const },
-    { label: "Clientes Nuevos", value: summary.newClients, icon: Users, gradient: "from-[#f472b6] to-[#ec4899]", light: "bg-[#f472b6]/10", format: "number" as const },
-    { label: "Prod. Vendidos", value: summary.productsSold, icon: Package, gradient: "from-[#f2b5a3] to-[#e09a88]", light: "bg-[#f2b5a3]/10", format: "number" as const },
-    { label: "Prod. Comprados", value: summary.productsPurchased, icon: Truck, gradient: "from-[#fbbf24] to-[#f59e0b]", light: "bg-[#fbbf24]/10", format: "number" as const },
+    { label: "Ingresos", value: summary.revenue, icon: DollarSign, color: "emerald", format: "currency" as const },
+    { label: "Gastos", value: summary.expenses, icon: ShoppingCart, color: "rose", format: "currency" as const },
+    { label: "Ganancia", value: summary.profit, icon: TrendingUp, color: "blue", format: "currency" as const },
+    { label: "Ventas", value: summary.salesCount, icon: Receipt, color: "teal", format: "number" as const },
+    { label: "Citas", value: summary.appointmentsCount, icon: Calendar, color: "violet", format: "number" as const },
+    { label: "Clientes Nuevos", value: summary.newClients, icon: Users, color: "pink", format: "number" as const },
+    { label: "Prod. Vendidos", value: summary.productsSold, icon: Package, color: "orange", format: "number" as const },
+    { label: "Prod. Comprados", value: summary.productsPurchased, icon: Truck, color: "amber", format: "number" as const },
   ];
+
+  const colorStyles: Record<string, { gradient: string; bg: string; icon: string; border: string }> = {
+    emerald: { gradient: "from-emerald-400 to-emerald-500", bg: "bg-emerald-50", icon: "text-emerald-500", border: "border-emerald-100" },
+    rose: { gradient: "from-rose-400 to-rose-500", bg: "bg-rose-50", icon: "text-rose-500", border: "border-rose-100" },
+    blue: { gradient: "from-blue-400 to-blue-500", bg: "bg-blue-50", icon: "text-blue-500", border: "border-blue-100" },
+    teal: { gradient: "from-teal-400 to-teal-500", bg: "bg-teal-50", icon: "text-teal-500", border: "border-teal-100" },
+    violet: { gradient: "from-violet-400 to-violet-500", bg: "bg-violet-50", icon: "text-violet-500", border: "border-violet-100" },
+    pink: { gradient: "from-pink-400 to-pink-500", bg: "bg-pink-50", icon: "text-pink-500", border: "border-pink-100" },
+    orange: { gradient: "from-orange-400 to-orange-500", bg: "bg-orange-50", icon: "text-orange-500", border: "border-orange-100" },
+    amber: { gradient: "from-amber-400 to-amber-500", bg: "bg-amber-50", icon: "text-amber-500", border: "border-amber-100" },
+  };
 
   return (
     <div className="space-y-6">
@@ -136,21 +147,24 @@ export default async function DaySummaryPage({
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {summaryCards.map(({ label, value, icon: Icon, gradient, light, format }) => (
-          <div key={label} className="rounded-xl border border-[var(--border)] bg-white p-3 shadow-[var(--shadow-sm)]">
-            <div className="flex items-center gap-2">
-              <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${light}`}>
-                <Icon className={`h-4 w-4 bg-gradient-to-br ${gradient} bg-clip-text text-transparent`} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--muted-foreground)]">{label}</p>
-                <p className="text-sm font-bold text-[var(--foreground)]">
-                  {format === "currency" ? formatCurrency(value) : value}
-                </p>
+        {summaryCards.map(({ label, value, icon: Icon, color, format }) => {
+          const cs = colorStyles[color];
+          return (
+            <div key={label} className={`group rounded-xl border ${cs.border} ${cs.bg} p-4 shadow-[var(--shadow-sm)] transition-all hover:shadow-md`}>
+              <div className="flex items-center gap-3">
+                <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${cs.gradient} shadow-sm`}>
+                  <Icon className="h-5 w-5 text-white" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">{label}</p>
+                  <p className={`text-base font-bold ${cs.icon}`}>
+                    {format === "currency" ? formatCurrency(value) : value}
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Charts */}
