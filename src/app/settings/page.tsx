@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Settings, Moon, Sun, Lock, CheckCircle, AlertCircle } from "lucide-react";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { Settings, Lock, CheckCircle, AlertCircle } from "lucide-react";
 
 export default function SettingsPage() {
   const [currentPassword, setCurrentPassword] = useState("");
@@ -47,38 +46,17 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="mx-auto max-w-lg space-y-6">
       <div className="flex items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[var(--primary)]/10 to-[var(--secondary)]/10">
           <Settings className="h-5 w-5 text-[var(--primary)]" />
         </div>
         <div>
           <h1 className="text-2xl font-bold text-[var(--foreground)]">Configuración</h1>
-          <p className="text-sm text-[var(--muted-foreground)]">Personaliza tu experiencia</p>
+          <p className="text-sm text-[var(--muted-foreground)]">Cambia tu contraseña de acceso</p>
         </div>
       </div>
 
-      {/* Theme */}
-      <div className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-[var(--shadow-sm)]">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--muted)]">
-            <Moon className="h-4.5 w-4.5 text-[var(--muted-foreground)]" />
-          </div>
-          <div>
-            <h2 className="text-base font-semibold text-[var(--foreground)]">Apariencia</h2>
-            <p className="text-xs text-[var(--muted-foreground)]">Cambia entre modo claro y oscuro</p>
-          </div>
-        </div>
-        <div className="flex items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--accent)] p-4">
-          <div className="flex items-center gap-3">
-            <Sun className="h-5 w-5 text-[var(--warning)]" />
-            <span className="text-sm font-medium text-[var(--foreground)]">Tema oscuro</span>
-          </div>
-          <ThemeToggle />
-        </div>
-      </div>
-
-      {/* Change Password */}
       <div className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-[var(--shadow-sm)]">
         <div className="flex items-center gap-3 mb-6">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--muted)]">
@@ -86,7 +64,7 @@ export default function SettingsPage() {
           </div>
           <div>
             <h2 className="text-base font-semibold text-[var(--foreground)]">Cambiar Contraseña</h2>
-            <p className="text-xs text-[var(--muted-foreground)]">Actualiza tu contraseña de acceso</p>
+            <p className="text-xs text-[var(--muted-foreground)]">Actualiza tu contraseña de acceso al sistema</p>
           </div>
         </div>
 

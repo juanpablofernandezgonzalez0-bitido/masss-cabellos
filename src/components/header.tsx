@@ -1,6 +1,7 @@
 "use client";
 
-import { LogOut, CalendarDays, UserCircle, Menu } from "lucide-react";
+import { LogOut, CalendarDays, UserCircle, Menu, Settings } from "lucide-react";
+import Link from "next/link";
 import { logout } from "@/lib/logout";
 
 interface HeaderProps {
@@ -31,7 +32,7 @@ export function Header({ user, onToggleSidebar }: HeaderProps) {
           </p>
         </div>
       </div>
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2">
         <div className="hidden items-center gap-2 rounded-full bg-[var(--accent)] px-3.5 py-1.5 sm:flex">
           <CalendarDays className="h-3.5 w-3.5 text-[var(--primary)]" />
           <span className="text-xs font-medium text-[var(--accent-foreground)]">
@@ -42,6 +43,13 @@ export function Header({ user, onToggleSidebar }: HeaderProps) {
             })}
           </span>
         </div>
+        <Link
+          href="/settings"
+          className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border)] bg-white text-[var(--muted-foreground)] shadow-[var(--shadow-sm)] transition-all hover:bg-[var(--accent)] hover:text-[var(--foreground)]"
+          title="Configuración"
+        >
+          <Settings className="h-4.5 w-4.5" />
+        </Link>
         <form action={logout}>
           <button
             type="submit"
