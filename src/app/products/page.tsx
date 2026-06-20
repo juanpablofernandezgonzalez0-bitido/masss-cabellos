@@ -30,7 +30,7 @@ export default function ProductsPage() {
       fetch("/api/auth/me").then((r) => r.json()),
     ]).then(([productsData, userData]) => {
       setProducts(productsData);
-      setIsAdmin(userData?.role === "admin");
+      setIsAdmin(userData?.user?.role === "admin");
       setLoading(false);
     });
   }, []);
@@ -108,7 +108,7 @@ export default function ProductsPage() {
           <div>
             <h1 className="text-2xl font-bold text-[var(--foreground)]">Productos</h1>
             <p className="text-sm text-[var(--muted-foreground)]">
-              {isAdmin ? "Arrastra los productos para reordenarlos" : "Consulta de productos disponibles"}
+              {isAdmin ? "Reordena los productos con los botones o arrastrándolos" : "Consulta de productos disponibles"}
             </p>
           </div>
         </div>
