@@ -29,6 +29,7 @@ model Product {
   minStock    Int      @default(0)
   image       String   @default("")
   isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -57,12 +58,25 @@ model TreatmentPlan {
   totalSessions    Int
   remainingSessions Int
   price            Float         @default(0)
+  paidAmount       Float         @default(0)
   status           String        @default("activo")
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
 
   client      Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
   appointments Appointment[]
+  payments    PlanPayment[]
+}
+
+model PlanPayment {
+  id        Int      @id @default(autoincrement())
+  planId    Int
+  amount    Float
+  notes     String   @default("")
+  paidAt    DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  plan TreatmentPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
 }
 
 model Appointment {
@@ -75,11 +89,15 @@ model Appointment {
   notes           String         @default("")
   treatmentPlanId Int?
   sessionNumber   Int?
+  saleId          Int?           @unique
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 
   client        Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
   treatmentPlan TreatmentPlan? @relation(fields: [treatmentPlanId], references: [id], onDelete: SetNull)
+  sale          Sale?          @relation(fields: [saleId], references: [id], onDelete: SetNull, map: "appointment_sale_id")
+
+  @@index([saleId])
 }
 
 model Sale {
@@ -91,8 +109,9 @@ model Sale {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  client Client?  @relation(fields: [clientId], references: [id], onDelete: SetNull)
-  items  SaleItem[]
+  client      Client?      @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  items       SaleItem[]
+  appointment Appointment?
 }
 
 model SaleItem {

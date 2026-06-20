@@ -34,6 +34,7 @@ async function buildContext() {
     workers,
     monthPayroll,
     todayPayroll,
+    planPaymentsAgg,
   ] = await Promise.all([
     prisma.sale.findMany({ where: { createdAt: { gte: todayStart, lte: todayEnd } }, include: { items: true } }),
     prisma.sale.findMany({ where: { createdAt: { gte: yesterdayStart, lte: yesterdayEnd } }, include: { items: true } }),
@@ -50,6 +51,7 @@ async function buildContext() {
     prisma.worker.findMany({ where: { isActive: true } }),
     prisma.payroll.aggregate({ where: { paidAt: { gte: monthStart, lte: monthEnd } }, _sum: { amount: true }, _count: true }),
     prisma.payroll.aggregate({ where: { paidAt: { gte: todayStart, lte: todayEnd } }, _sum: { amount: true }, _count: true }),
+    prisma.treatmentPlan.aggregate({ where: { status: "activo" }, _sum: { paidAmount: true, price: true }, _count: true }),
   ]);
 
   const lowStock = allProducts.filter((p) => p.stock < p.minStock);
@@ -105,6 +107,10 @@ NÓMINA:
 - Trabajadoras activas: ${workers.length}
 - Pagado en nómina hoy: $${todayPayroll._sum.amount?.toLocaleString("es-CO") || "0"} (${todayPayroll._count} pago${todayPayroll._count !== 1 ? "s" : ""})
 - Pagado en nómina este mes: $${monthPayroll._sum.amount?.toLocaleString("es-CO") || "0"} (${monthPayroll._count} pago${monthPayroll._count !== 1 ? "s" : ""})
+
+PAGOS DE PLANES:
+- Planes activos: ${planPaymentsAgg._count}
+- Recaudado por planes: $${planPaymentsAgg._sum.paidAmount?.toLocaleString("es-CO") || "0"} de $${planPaymentsAgg._sum.price?.toLocaleString("es-CO") || "0"}
 
 ÚLTIMAS 20 VENTAS (con productos):
 ${allSales.map((s) => `- $${s.total.toLocaleString("es-CO")} ${s.client?.name ? "- "+s.client.name : ""} (${s.createdAt.toLocaleDateString("es-CO")})`).join("\n")}`;

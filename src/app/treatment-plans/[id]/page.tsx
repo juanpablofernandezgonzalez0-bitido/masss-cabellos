@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { ArrowLeft, User, Calendar, DollarSign, ClipboardList, Plus, Clock, CheckCircle } from "lucide-react";
 import { formatDate, formatCurrency } from "@/lib/utils";
 import { CompleteButton } from "@/components/complete-button";
+import { PlanPayments } from "./plan-payments";
 
 const statusStyles: Record<string, string> = {
   activo: "bg-[var(--info)]/10 text-[var(--info)] border-[var(--info)]/20",
@@ -37,6 +38,7 @@ export default async function TreatmentPlanDetailPage({
     include: {
       client: true,
       appointments: { orderBy: [{ date: "desc" }, { time: "desc" }] },
+      payments: { orderBy: { paidAt: "desc" } },
     },
   });
 
@@ -154,6 +156,11 @@ export default async function TreatmentPlanDetailPage({
                       <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium capitalize ${appointmentStatusStyles[a.status]}`}>
                         {a.status === "pendiente" ? "Pendiente" : a.status === "completada" ? "Completada" : "Cancelada"}
                       </span>
+                      {a.saleId && (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-[var(--success)]/20 bg-[var(--success)]/10 px-2.5 py-0.5 text-xs font-medium text-[var(--success)]">
+                          <CheckCircle className="h-3 w-3" /> Pagado
+                        </span>
+                      )}
                     </div>
                     <div className="mt-0.5 flex items-center gap-3 text-xs text-[var(--muted-foreground)]">
                       <span>{formatDate(a.date)}</span>
@@ -185,6 +192,13 @@ export default async function TreatmentPlanDetailPage({
           </div>
         )}
       </div>
+
+      <PlanPayments
+        planId={plan.id}
+        price={plan.price}
+        paidAmount={plan.paidAmount}
+        remainingSessions={plan.remainingSessions}
+      />
     </div>
   );
 }

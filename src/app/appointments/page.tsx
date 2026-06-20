@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { Plus, Calendar, Clock, User } from "lucide-react";
+import { Plus, Calendar, Clock, User, CheckCircle, DollarSign } from "lucide-react";
 import { DeleteButton } from "@/components/delete-button";
 import { formatDate } from "@/lib/utils";
 import { CompleteButton } from "@/components/complete-button";
@@ -85,6 +85,7 @@ export default async function AppointmentsPage({
                 <th className="hidden px-4 py-3.5 text-left text-xs font-semibold uppercase text-[var(--muted-foreground)] lg:table-cell">Plan</th>
                 <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase text-[var(--muted-foreground)]">Estado</th>
                 <th className="hidden max-w-[200px] px-4 py-3.5 text-left text-xs font-semibold uppercase text-[var(--muted-foreground)] lg:table-cell">Notas</th>
+                <th className="hidden px-4 py-3.5 text-left text-xs font-semibold uppercase text-[var(--muted-foreground)] xl:table-cell">Pago</th>
                 <th className="px-4 py-3.5 text-right text-xs font-semibold uppercase text-[var(--muted-foreground)]">Acciones</th>
               </tr>
             </thead>
@@ -133,8 +134,27 @@ export default async function AppointmentsPage({
                   <td className="hidden max-w-[200px] truncate px-4 py-3.5 text-sm text-[var(--muted-foreground)] lg:table-cell">
                     {a.notes || "—"}
                   </td>
+                  <td className="hidden px-4 py-3.5 xl:table-cell">
+                    {a.saleId ? (
+                      <span className="inline-flex items-center gap-1 rounded-full border border-[var(--success)]/20 bg-[var(--success)]/10 px-2.5 py-1 text-xs font-medium text-[var(--success)]">
+                        <CheckCircle className="h-3 w-3" /> Pagado
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 rounded-full border border-[var(--warning)]/20 bg-[var(--warning)]/10 px-2.5 py-1 text-xs font-medium text-[var(--warning)]">
+                        Pendiente
+                      </span>
+                    )}
+                  </td>
                   <td className="px-4 py-3.5 text-right">
                     <div className="flex items-center justify-end gap-1.5">
+                      {a.status === "pendiente" && !a.saleId && (
+                        <Link
+                          href={`/sales/new?appointmentId=${a.id}`}
+                          className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium text-[var(--success)] transition-all hover:bg-[var(--success)]/10"
+                        >
+                          <DollarSign className="h-3.5 w-3.5" /> Facturar
+                        </Link>
+                      )}
                       {a.status === "pendiente" && <CompleteButton id={a.id} planId={a.treatmentPlanId} />}
                       <Link
                         href={`/appointments/${a.id}/edit`}

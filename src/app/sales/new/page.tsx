@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { createSale } from "@/lib/actions";
-import { ArrowLeft, Plus, Trash2, ShoppingCart, User, FileText } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, ShoppingCart, User, FileText, Search } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
@@ -11,6 +11,7 @@ interface ProductOption {
   name: string;
   price: number;
   stock: number;
+  image?: string;
 }
 
 interface ClientOption {
@@ -30,6 +31,7 @@ interface SaleItem {
 export default function NewSalePage() {
   const searchParams = useSearchParams();
   const planId = searchParams.get("planId");
+  const appointmentId = searchParams.get("appointmentId");
 
   const [items, setItems] = useState<SaleItem[]>(() => {
     if (planId) {
@@ -38,25 +40,33 @@ export default function NewSalePage() {
     return [{ type: "product", productId: "", quantity: "1", customName: "", customDescription: "", customPrice: "" }];
   });
   const [products, setProducts] = useState<ProductOption[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<ProductOption[]>([]);
   const [clients, setClients] = useState<ClientOption[]>([]);
   const [preselectedClientId, setPreselectedClientId] = useState("");
   const [planDescription, setPlanDescription] = useState("");
   const [planPrice, setPlanPrice] = useState(0);
   const [planTotalSessions, setPlanTotalSessions] = useState(0);
+  const [appointmentInfo, setAppointmentInfo] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [paid, setPaid] = useState("");
+  const [productSearch, setProductSearch] = useState("");
+  const [showProductPicker, setShowProductPicker] = useState<number | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const planLoaded = useRef(false);
+  const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     Promise.all([
       fetch("/api/products").then((r) => r.json()),
       fetch("/api/clients").then((r) => r.json()),
       planId ? fetch(`/api/treatment-plans?id=${planId}`).then((r) => r.json()) : Promise.resolve(null),
-    ]).then(([productsData, clientsData, planData]) => {
+      appointmentId ? fetch(`/api/appointments/${appointmentId}`).then((r) => r.json()) : Promise.resolve(null),
+    ]).then(([productsData, clientsData, planData, appointmentData]) => {
       setProducts(productsData);
+      setFilteredProducts(productsData);
       setClients(clientsData);
+
       if (planData && !planLoaded.current) {
         planLoaded.current = true;
         setPreselectedClientId(String(planData.clientId));
@@ -72,13 +82,36 @@ export default function NewSalePage() {
           customPrice: String(planData.price),
         }]);
       }
+
+      if (appointmentData && appointmentData.clientId) {
+        setPreselectedClientId(String(appointmentData.clientId));
+        if (appointmentData.notes) setAppointmentInfo(appointmentData.notes);
+        else if (appointmentData.type) setAppointmentInfo(`Cita: ${appointmentData.type}`);
+      }
+
       setLoading(false);
     });
-  }, [planId]);
+  }, [planId, appointmentId]);
+
+  useEffect(() => {
+    if (productSearch) {
+      const q = productSearch.toLowerCase();
+      setFilteredProducts(products.filter((p) => p.name.toLowerCase().includes(q)));
+    } else {
+      setFilteredProducts(products);
+    }
+  }, [productSearch, products]);
+
+  useEffect(() => {
+    if (showProductPicker !== null && searchRef.current) {
+      searchRef.current.focus();
+    }
+  }, [showProductPicker]);
 
   const addItem = () => {
     const newItem: SaleItem = { type: "product", productId: "", quantity: "1", customName: "", customDescription: "", customPrice: "" };
     setItems([...items, newItem]);
+    setShowProductPicker(items.length);
   };
 
   const addManualItem = () => {
@@ -95,6 +128,12 @@ export default function NewSalePage() {
     const newItems = [...items];
     (newItems[index] as any)[field] = value;
     setItems(newItems);
+  };
+
+  const selectProduct = (index: number, product: ProductOption) => {
+    updateItem(index, "productId", String(product.id));
+    setShowProductPicker(null);
+    setProductSearch("");
   };
 
   const getProduct = (productId: string) => products.find((p) => p.id === parseInt(productId));
@@ -114,6 +153,7 @@ export default function NewSalePage() {
     const formData = new FormData();
     const clientSelect = formRef.current?.querySelector<HTMLSelectElement>('[name="clientId"]');
     formData.set("clientId", clientSelect?.value || "");
+    if (appointmentId) formData.set("appointmentId", appointmentId);
 
     const payload = items.filter((item) => {
       if (item.type === "product") return !!item.productId && !isNaN(parseInt(item.productId));
@@ -163,10 +203,19 @@ export default function NewSalePage() {
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
           </select>
-          {preselectedClientId && (
+          {planId && (
             <p className="mt-1 text-xs text-[var(--primary)]">Vinculado al plan de tratamiento</p>
           )}
+          {appointmentId && (
+            <p className="mt-1 text-xs text-[var(--primary)]">Vinculado a una cita</p>
+          )}
         </div>
+
+        {appointmentInfo && (
+          <div className="rounded-xl border border-[var(--secondary)]/20 bg-[var(--secondary)]/5 p-4">
+            <p className="text-sm font-medium text-[var(--secondary)]">{appointmentInfo}</p>
+          </div>
+        )}
 
         {planDescription && (
           <div className="rounded-xl border border-[var(--primary)]/20 bg-[var(--primary)]/5 p-4">
@@ -203,23 +252,70 @@ export default function NewSalePage() {
           <div className="space-y-3">
             {items.map((item, index) => {
               const product = item.type === "product" ? getProduct(item.productId) : null;
+              const isPickerOpen = showProductPicker === index;
               return (
                 <div key={index} className="flex flex-col gap-2 rounded-xl border border-[var(--border)] bg-[var(--accent)] p-4 sm:flex-row sm:items-start sm:gap-3">
                   <div className="min-w-0 flex-1">
                     {item.type === "product" ? (
-                      <select
-                        value={item.productId}
-                        onChange={(e) => updateItem(index, "productId", e.target.value)}
-                        required
-                        className="form-input"
-                      >
-                        <option value="">Seleccionar producto...</option>
-                        {products.map((p) => (
-                          <option key={p.id} value={p.id} disabled={p.stock === 0}>
-                            {p.name} (${p.price.toLocaleString()}) - Stock: {p.stock}
-                          </option>
-                        ))}
-                      </select>
+                      <div className="relative">
+                        <button
+                          type="button"
+                          onClick={() => setShowProductPicker(isPickerOpen ? null : index)}
+                          className="flex w-full items-center gap-2 rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-left text-sm text-[var(--foreground)] transition-all hover:border-[var(--primary)]"
+                        >
+                          <Search className="h-4 w-4 shrink-0 text-[var(--muted-foreground)]" />
+                          {product ? (
+                            <span className="flex items-center justify-between flex-1">
+                              <span className="font-medium">{product.name}</span>
+                              <span className="text-xs text-[var(--muted-foreground)]">${product.price.toLocaleString()} — Stock: {product.stock}</span>
+                            </span>
+                          ) : (
+                            <span className="text-[var(--muted-foreground)]">Buscar producto...</span>
+                          )}
+                        </button>
+                        {isPickerOpen && (
+                          <div className="absolute left-0 right-0 top-full z-50 mt-1 rounded-xl border border-[var(--border)] bg-white shadow-lg">
+                            <div className="border-b border-[var(--border)] p-2">
+                              <input
+                                ref={searchRef}
+                                type="text"
+                                placeholder="Buscar producto..."
+                                value={productSearch}
+                                onChange={(e) => setProductSearch(e.target.value)}
+                                className="w-full rounded-lg border border-[var(--border)] px-3 py-2 text-sm outline-none focus:border-[var(--primary)] focus:ring-3 focus:ring-[var(--primary)]/15"
+                              />
+                            </div>
+                            <div className="max-h-60 overflow-y-auto">
+                              {filteredProducts.length === 0 ? (
+                                <div className="p-4 text-center text-sm text-[var(--muted-foreground)]">Sin resultados</div>
+                              ) : (
+                                filteredProducts.map((p) => (
+                                  <button
+                                    key={p.id}
+                                    type="button"
+                                    onClick={() => selectProduct(index, p)}
+                                    disabled={p.stock === 0}
+                                    className="flex w-full items-center justify-between px-4 py-2.5 text-left text-sm transition-colors hover:bg-[var(--accent)] disabled:opacity-40"
+                                  >
+                                    <div className="flex items-center gap-3">
+                                      {p.image ? (
+                                        <img src={p.image} alt="" className="h-8 w-8 rounded-lg object-cover" />
+                                      ) : (
+                                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--muted)] text-xs text-[var(--muted-foreground)]">?</div>
+                                      )}
+                                      <div>
+                                        <p className="font-medium text-[var(--foreground)]">{p.name}</p>
+                                        <p className="text-xs text-[var(--muted-foreground)]">Stock: {p.stock}</p>
+                                      </div>
+                                    </div>
+                                    <span className="font-semibold text-[var(--primary)]">${p.price.toLocaleString()}</span>
+                                  </button>
+                                ))
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     ) : (
                       <div className="flex flex-col gap-2 sm:flex-row sm:gap-2">
                         <input
@@ -231,12 +327,11 @@ export default function NewSalePage() {
                           className="rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm text-[var(--foreground)] outline-none transition-all focus:border-[var(--primary)] focus:ring-3 focus:ring-[var(--primary)]/15 sm:flex-1"
                         />
                         <input
-                          type="number"
-                          min="0"
-                          step="0.01"
+                          type="text"
+                          inputMode="numeric"
                           placeholder="Precio"
                           value={item.customPrice}
-                          onChange={(e) => updateItem(index, "customPrice", e.target.value)}
+                          onChange={(e) => updateItem(index, "customPrice", e.target.value.replace(/[^0-9]/g, ""))}
                           required
                           className="rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-center text-sm text-[var(--foreground)] outline-none transition-all focus:border-[var(--primary)] focus:ring-3 focus:ring-[var(--primary)]/15 sm:w-32"
                         />
@@ -287,12 +382,11 @@ export default function NewSalePage() {
           <div>
             <label className="mb-2 block text-sm font-medium text-[var(--foreground)]">Paga con</label>
             <input
-              type="number"
-              min="0"
-              step="0.01"
+              type="text"
+              inputMode="numeric"
               placeholder="$0"
               value={paid}
-              onChange={(e) => setPaid(e.target.value)}
+              onChange={(e) => setPaid(e.target.value.replace(/[^0-9]/g, ""))}
               className="form-input text-lg font-semibold"
             />
           </div>

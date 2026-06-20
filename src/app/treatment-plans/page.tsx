@@ -18,6 +18,22 @@ async function getTreatmentPlans(q?: string) {
   });
 }
 
+function PaymentProgress({ paid, total }: { paid: number; total: number }) {
+  if (total <= 0) return null;
+  const pct = Math.min(100, Math.round((paid / total) * 100));
+  const isPaid = paid >= total;
+  return (
+    <div className="mt-1 flex items-center gap-2">
+      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[var(--muted)]">
+        <div className={`h-full rounded-full transition-all ${isPaid ? "bg-[var(--success)]" : "bg-[var(--primary)]"}`} style={{ width: `${pct}%` }} />
+      </div>
+      <span className={`whitespace-nowrap text-xs font-medium ${isPaid ? "text-[var(--success)]" : "text-[var(--muted-foreground)]"}`}>
+        {pct}%
+      </span>
+    </div>
+  );
+}
+
 const statusStyles: Record<string, string> = {
   activo: "bg-[var(--info)]/10 text-[var(--info)] border-[var(--info)]/20",
   completado: "bg-[var(--success)]/10 text-[var(--success)] border-[var(--success)]/20",
@@ -101,10 +117,15 @@ export default async function TreatmentPlansPage({
                       </div>
                     </td>
                     <td className="hidden px-4 py-3.5 text-right md:table-cell">
-                      <div className="inline-flex items-center gap-1 text-sm font-medium text-[var(--foreground)]">
-                        <DollarSign className="h-3.5 w-3.5 text-[var(--muted-foreground)]" />
-                        {plan.price > 0 ? formatCurrency(plan.price) : "—"}
-                      </div>
+                      {plan.price > 0 ? (
+                        <div>
+                          <div className="inline-flex items-center gap-1 text-sm font-medium text-[var(--foreground)]">
+                            <DollarSign className="h-3.5 w-3.5 text-[var(--muted-foreground)]" />
+                            {formatCurrency(plan.price)}
+                          </div>
+                          <PaymentProgress paid={plan.paidAmount} total={plan.price} />
+                        </div>
+                      ) : <span className="text-sm text-[var(--muted-foreground)]">—</span>}
                     </td>
                     <td className="px-4 py-3.5">
                       <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium capitalize ${statusStyles[plan.status] || statusStyles.activo}`}>
