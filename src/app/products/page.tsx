@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { Plus, Package, AlertTriangle, Tags, GripVertical } from "lucide-react";
+import { Plus, Package, AlertTriangle, Tags, GripVertical, ChevronUp, ChevronDown } from "lucide-react";
 import { DeleteButton } from "@/components/delete-button";
 
 interface Product {
@@ -51,9 +51,8 @@ export default function ProductsPage() {
     setDragIndex(index);
   }, [dragIndex, products]);
 
-  const handleDragEnd = useCallback(async () => {
-    setDragIndex(null);
-    const reordered = products.map((p, i) => ({ id: p.id, sortOrder: i }));
+  const saveOrder = useCallback(async (orderedProducts: Product[]) => {
+    const reordered = orderedProducts.map((p, i) => ({ id: p.id, sortOrder: i }));
     try {
       await fetch("/api/products/reorder", {
         method: "POST",
@@ -63,7 +62,22 @@ export default function ProductsPage() {
     } catch (e) {
       console.error("Error al guardar orden:", e);
     }
-  }, [products]);
+  }, []);
+
+  const handleDragEnd = useCallback(async () => {
+    setDragIndex(null);
+    await saveOrder(products);
+  }, [products, saveOrder]);
+
+  const moveProduct = useCallback(async (index: number, direction: "up" | "down") => {
+    const newIndex = direction === "up" ? index - 1 : index + 1;
+    if (newIndex < 0 || newIndex >= products.length) return;
+    const newProducts = [...products];
+    const item = newProducts.splice(index, 1)[0];
+    newProducts.splice(newIndex, 0, item);
+    setProducts(newProducts);
+    await saveOrder(newProducts);
+  }, [products, saveOrder]);
 
   if (loading) {
     return (
@@ -120,12 +134,6 @@ export default function ProductsPage() {
             className={`group relative overflow-hidden rounded-2xl border bg-white shadow-[var(--shadow-sm)] transition-all hover:shadow-[var(--shadow-md)] ${dragIndex === index ? "border-[var(--primary)] shadow-md opacity-60" : "border-[var(--border)] hover:-translate-y-0.5"} ${isAdmin ? "cursor-grab active:cursor-grabbing" : ""}`}
           >
             <div className="relative aspect-square overflow-hidden bg-white">
-              {isAdmin && (
-                <div className="absolute left-3 top-3 z-10 flex items-center gap-1 rounded-lg bg-white/90 px-2 py-1 text-xs text-[var(--muted-foreground)] shadow-sm backdrop-blur-sm opacity-0 transition-opacity group-hover:opacity-100">
-                  <GripVertical className="h-3.5 w-3.5" />
-                  Arrastrar
-                </div>
-              )}
               {product.image ? (
                 <img
                   src={product.image}
@@ -145,9 +153,33 @@ export default function ProductsPage() {
                   {product.category}
                 </span>
               </div>
+              {isAdmin && (
+                <div className="absolute bottom-3 left-3 flex gap-1 max-sm:opacity-100 sm:opacity-0 sm:transition-all sm:duration-200 sm:group-hover:opacity-100">
+                  <span className="flex items-center gap-0.5 rounded-lg bg-white/90 px-1.5 py-1 text-xs text-[var(--muted-foreground)] shadow-md backdrop-blur-sm">
+                    <GripVertical className="h-3.5 w-3.5" />
+                    Mover
+                  </span>
+                </div>
+              )}
               <div className="absolute bottom-3 right-3 flex gap-1.5 max-sm:opacity-100 sm:opacity-0 sm:transition-all sm:duration-200 sm:group-hover:opacity-100">
                 {isAdmin && (
                   <>
+                    <button
+                      onClick={() => moveProduct(index, "up")}
+                      disabled={index === 0}
+                      className="flex h-8 w-8 items-center justify-center rounded-lg bg-white text-[var(--muted-foreground)] shadow-md transition-all hover:bg-[var(--primary)] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed"
+                      title="Mover arriba"
+                    >
+                      <ChevronUp className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => moveProduct(index, "down")}
+                      disabled={index === products.length - 1}
+                      className="flex h-8 w-8 items-center justify-center rounded-lg bg-white text-[var(--muted-foreground)] shadow-md transition-all hover:bg-[var(--primary)] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed"
+                      title="Mover abajo"
+                    >
+                      <ChevronDown className="h-4 w-4" />
+                    </button>
                     <Link
                       href={`/products/${product.id}/edit`}
                       className="rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-[var(--muted-foreground)] shadow-md transition-all hover:bg-[var(--primary)] hover:text-white"

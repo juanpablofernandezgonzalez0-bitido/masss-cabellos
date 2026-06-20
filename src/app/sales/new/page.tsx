@@ -85,8 +85,19 @@ export default function NewSalePage() {
 
       if (appointmentData && appointmentData.clientId) {
         setPreselectedClientId(String(appointmentData.clientId));
-        if (appointmentData.notes) setAppointmentInfo(appointmentData.notes);
-        else if (appointmentData.type) setAppointmentInfo(`Cita: ${appointmentData.type}`);
+        const service = appointmentData.type || "servicio";
+        const serviceLabel = service.charAt(0).toUpperCase() + service.slice(1);
+        setAppointmentInfo(`Cita: ${serviceLabel}`);
+        if (!planId) {
+          setItems([{
+            type: "manual",
+            productId: "",
+            quantity: "1",
+            customName: serviceLabel,
+            customDescription: appointmentData.notes || "",
+            customPrice: "",
+          }]);
+        }
       }
 
       setLoading(false);
