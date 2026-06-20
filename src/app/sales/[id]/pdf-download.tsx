@@ -28,7 +28,7 @@ function fmt(n: number): string {
 export function PdfDownloadButton({ invoiceNum, total, paid, change, clientName, date, items }: Props) {
   const [loading, setLoading] = useState(false);
 
-  const downloadPdf = () => {
+  const downloadPdf = async () => {
     setLoading(true);
     try {
       const pdf = new jsPDF("p", "mm", "a4");
@@ -36,6 +36,24 @@ export function PdfDownloadButton({ invoiceNum, total, paid, change, clientName,
       const cw = 64;
       const ml = (pw - cw) / 2;
       let y = 20;
+
+      let logoBase64 = "";
+      try {
+        const logoRes = await fetch("/logo.png");
+        const logoBlob = await logoRes.blob();
+        logoBase64 = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(logoBlob);
+        });
+      } catch { /* fallback: just skip the logo */ }
+
+      if (logoBase64) {
+        const logoW = 30;
+        const logoH = (1050 / 1192) * logoW;
+        pdf.addImage(logoBase64, "PNG", pw / 2 - logoW / 2, y, logoW, logoH);
+        y += logoH + 3;
+      }
 
       const bold = (s: number) => { pdf.setFont("Helvetica", "bold"); pdf.setFontSize(s); };
       const norm = (s: number) => { pdf.setFont("Helvetica", "normal"); pdf.setFontSize(s); };
