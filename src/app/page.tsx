@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/session";
 import { Package, Users, Calendar, ShoppingCart, AlertTriangle, TrendingUp, DollarSign, ArrowRight, Clock, Star } from "lucide-react";
 import Link from "next/link";
 
@@ -42,6 +43,8 @@ async function getDashboardData() {
 }
 
 export default async function Home() {
+  const user = await getCurrentUser();
+  const isAdmin = user?.role === "admin";
   const d = await getDashboardData();
   const today = new Date();
   const dateStr = today.toLocaleDateString("es-CO", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
@@ -68,13 +71,15 @@ export default async function Home() {
           <p className="text-sm font-medium text-[var(--muted-foreground)]">{dateStr}</p>
           <h1 className="text-2xl font-bold text-[var(--foreground)]">Dashboard</h1>
         </div>
-        <div className="flex items-center gap-3 rounded-2xl bg-gradient-to-r from-pink-500/10 to-rose-500/10 px-5 py-3">
-          <DollarSign className="h-5 w-5 text-pink-500" />
-          <div>
+        {isAdmin && (
+          <div className="flex items-center gap-3 rounded-2xl bg-gradient-to-r from-pink-500/10 to-rose-500/10 px-5 py-3">
+            <DollarSign className="h-5 w-5 text-pink-500" />
+            <div>
               <p className="text-xs font-medium text-pink-600/70 uppercase tracking-wider">Ingresos Hoy</p>
               <p className="text-lg font-bold text-pink-600">${d.todayRevenue.toLocaleString()}</p>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Today mini-bar */}
@@ -85,7 +90,7 @@ export default async function Home() {
           </div>
           <div>
             <p className="text-xs font-medium text-[var(--muted-foreground)]">Ventas hoy</p>
-            <p className="text-lg font-bold text-[var(--foreground)]">{d.todaySales} <span className="text-sm font-normal text-[var(--muted-foreground)]">· ${d.todayRevenue.toLocaleString()}</span></p>
+            <p className="text-lg font-bold text-[var(--foreground)]">{d.todaySales}{isAdmin && <span className="text-sm font-normal text-[var(--muted-foreground)]"> · ${d.todayRevenue.toLocaleString()}</span>}</p>
           </div>
         </div>
         <div className="flex items-center gap-3 rounded-xl border border-[var(--border)] bg-white px-4 py-3 shadow-[var(--shadow-sm)]">

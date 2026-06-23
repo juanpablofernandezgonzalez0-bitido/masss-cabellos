@@ -25,6 +25,14 @@ export default function NewClientPage() {
             <input name="name" required className="form-input" placeholder="Nombre del cliente" />
           </div>
           <div>
+            <label className="mb-2 block text-sm font-medium text-[var(--foreground)]">Apodo</label>
+            <input name="apodo" className="form-input" placeholder="Ej: Mari" />
+          </div>
+          <div>
+            <label className="mb-2 block text-sm font-medium text-[var(--foreground)]">Dirección</label>
+            <input name="direccion" className="form-input" placeholder="Cra 1 # 2-3" />
+          </div>
+          <div>
             <label className="mb-2 block text-sm font-medium text-[var(--foreground)]">Teléfono</label>
             <input name="phone" type="tel" className="form-input" placeholder="+57 300 000 0000" />
           </div>

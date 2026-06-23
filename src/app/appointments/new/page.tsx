@@ -101,10 +101,9 @@ export default async function NewAppointmentPage({
         <div className="space-y-2">
           <label className="block text-sm font-medium text-[var(--foreground)]">Tipo de Cita</label>
           <select name="type" className="form-input">
-            <option value="revision">Revisión</option>
-            <option value="tratamiento">Tratamiento</option>
+            <option value="valoracion">Valoración</option>
             <option value="consulta">Consulta</option>
-            <option value="seguimiento">Seguimiento</option>
+            <option value="saneo">Saneo de puntas</option>
           </select>
         </div>
 

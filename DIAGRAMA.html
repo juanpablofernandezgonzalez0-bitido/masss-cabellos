@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MASSS Cabellos — Sistema de Gestión</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #faf5f3;
+    color: #3d2c33;
+    padding: 40px 20px;
+  }
+
+  .container {
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 50px;
+  }
+
+  .header h1 {
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: #3d2c33;
+    letter-spacing: -0.02em;
+  }
+
+  .header p {
+    color: #a0808a;
+    font-size: 1.1rem;
+    margin-top: 8px;
+    line-height: 1.5;
+  }
+
+  .section {
+    margin-bottom: 45px;
+  }
+
+  .section-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #3d2c33;
+    margin-bottom: 18px;
+    padding-left: 14px;
+    border-left: 4px solid #e88aa5;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 14px;
+  }
+
+  .card {
+    background: white;
+    border: 1px solid #f0e0e4;
+    border-radius: 14px;
+    padding: 22px 20px;
+    box-shadow: 0 1px 3px rgba(61,44,51,0.04);
+  }
+
+  .card .icon-wrap {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 14px;
+    font-size: 22px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+  }
+
+  .card h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  .card p {
+    font-size: 0.85rem;
+    color: #7a6a72;
+    line-height: 1.5;
+  }
+
+  .card ul {
+    margin-top: 8px;
+    list-style: none;
+    padding: 0;
+  }
+
+  .card ul li {
+    font-size: 0.8rem;
+    color: #9a8892;
+    padding: 3px 0 3px 16px;
+    position: relative;
+    line-height: 1.4;
+  }
+
+  .card ul li::before {
+    content: '→';
+    position: absolute;
+    left: 0;
+    color: #e88aa5;
+  }
+
+  .mermaid-box {
+    background: white;
+    border: 1px solid #f0e0e4;
+    border-radius: 16px;
+    padding: 24px 16px 16px;
+    box-shadow: 0 1px 3px rgba(61,44,51,0.04);
+    overflow-x: auto;
+  }
+
+  .footer {
+    text-align: center;
+    margin-top: 50px;
+    padding-top: 25px;
+    border-top: 1px solid #f0e0e4;
+    color: #b8a8b0;
+    font-size: 0.85rem;
+  }
+
+  /* Gradientes de iconos */
+  .g-dashboard { background: linear-gradient(135deg, #667eea, #764ba2); }
+  .g-products { background: linear-gradient(135deg, #f093fb, #f5576c); }
+  .g-clients  { background: linear-gradient(135deg, #4facfe, #00f2fe); }
+  .g-appts    { background: linear-gradient(135deg, #43e97b, #38f9d7); }
+  .g-plans    { background: linear-gradient(135deg, #fa709a, #fee140); }
+  .g-sales    { background: linear-gradient(135deg, #a18cd1, #fbc2eb); }
+  .g-purchases{ background: linear-gradient(135deg, #fccb90, #d57eeb); }
+  .g-reports  { background: linear-gradient(135deg, #e0c3fc, #8ec5fc); }
+  .g-day      { background: linear-gradient(135deg, #ffecd2, #fcb69f); }
+  .g-payroll  { background: linear-gradient(135deg, #a8edea, #fed6e3); }
+  .g-assistant{ background: linear-gradient(135deg, #d4fc79, #96e6a1); }
+  .g-roles    { background: linear-gradient(135deg, #fbc2eb, #a6c1ee); }
+  .g-notes    { background: linear-gradient(135deg, #fccb90, #d57eeb); }
+
+  .g-dashboard, .g-products, .g-clients, .g-appts,
+  .g-plans, .g-sales, .g-purchases, .g-reports,
+  .g-day, .g-payroll, .g-assistant, .g-roles, .g-notes {
+    color: white;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h1>MASSS Cabellos</h1>
+    <p>Sistema de gestión para tu estética y cuidado capilar</p>
+  </div>
+
+  <!-- Diagrama principal: flujo del día a día -->
+  <div class="section">
+    <div class="section-title">¿Cómo funciona el sistema?</div>
+    <div class="mermaid-box">
+      <div class="mermaid">
+        flowchart TB
+          Llegada["🚶‍♀️ Llega un cliente"] --> Elige{"¿Qué necesita?"}
+          Elige -->|"Comprar producto"| Facturar["🧴 Se factura el producto<br/>Se descuenta del inventario"]
+          Elige -->|"Agendar cita"| Agenda["🗓️ Se agenda la cita<br/>Seleccionando día, hora y servicio"]
+          Elige -->|"Plan de tratamiento"| Plan["📋 Se crea un plan<br/>con cierto número de sesiones"]
+          Elige -->|"Consultar"| Info["💬 El asistente<br/>responde dudas del negocio"]
+          Elige -->|"Tomar nota"| Nota["📝 Se crea una nota<br/>con título y contenido"]
+
+          Agenda -->|"Cuando viene"| Atencion["✨ Se marca como atendida"]
+          Atencion -->|"Si paga"| Facturar
+
+          Plan -->|"Cada sesión"| Sesion["🗓️ Se agenda la sesión como cita"]
+          Sesion -->|"Se atiende"| Atencion
+          Plan -->|"Puede abonar<br/>parcialmente"| Abono["💵 Registra pago parcial<br/>Se actualiza el saldo"]
+
+          Facturar --> Ticket["🧾 Se genera factura<br/>con productos y servicio"]
+          Ticket -->|"Puede descargar PDF"| PDF["📄 Factura en PDF<br/>formato térmico"]
+      </div>
+    </div>
+  </div>
+
+  <!-- Módulos -->
+  <div class="section">
+    <div class="section-title">¿Qué puedes hacer con el sistema?</div>
+    <div class="grid">
+      <div class="card">
+        <div class="icon-wrap g-dashboard">🎯</div>
+        <h3>Dashboard</h3>
+        <p>Al entrar ves un resumen de todo:</p>
+        <ul>
+          <li>Ingresos del día de hoy</li>
+          <li>Productos con stock bajo</li>
+          <li>Próximas citas del día</li>
+          <li>Últimas ventas realizadas</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="icon-wrap g-products">🧴</div>
+        <h3>Inventario de productos</h3>
+        <p>Controla todo lo que vendes:</p>
+        <ul>
+          <li>Agregar productos con foto y precio</li>
+          <li>Organizar por categorías</li>
+          <li>Ver el stock disponible</li>
+          <li>Recibir alerta de stock mínimo</li>
+          <li>Reordenar con arrastrar y soltar</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="icon-wrap g-clients">🤝</div>
+        <h3>Clientes</h3>
+        <p>Mantén la base de datos de tus clientes:</p>
+        <ul>
+          <li>Registrar nombre, teléfono y email</li>
+          <li>Ver su historial de compras</li>
+          <li>Ver sus citas y planes activos</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="icon-wrap g-appts">🗓️</div>
+        <h3>Agenda de citas</h3>
+        <p>Organiza el día a día:</p>
+        <ul>
+          <li>Agendar citas con día, hora y servicio</li>
+          <li>Filtrar por fecha</li>
+          <li>Marcar como atendida o cancelada</li>
+          <li>Facturar directamente desde la cita</li>
+          <li>Vincular citas a planes de tratamiento</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="icon-wrap g-plans">📋</div>
+        <h3>Planes de tratamiento</h3>
+        <p>Ofrece paquetes por sesiones:</p>
+        <ul>
+          <li>Crear planes con varias sesiones</li>
+          <li>Agendar cada sesión como cita</li>
+          <li>Ver cuántas sesiones quedan</li>
+          <li>Recibir abonos o pagos parciales</li>
+          <li>Facturar el plan completo al finalizar</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="icon-wrap g-notes">📝</div>
+        <h3>Notas</h3>
+        <p>Apunta lo que necesites:</p>
+        <ul>
+          <li>Crear notas con título y contenido</li>
+          <li>Editar o eliminar notas existentes</li>
+          <li>Buscar notas por título</li>
+          <li>Disponible para admin y trabajadores</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="icon-wrap g-sales">🧾</div>
+        <h3>Ventas y facturación</h3>
+        <p>Factura todo lo que vendes:</p>
+        <ul>
+          <li>Buscar productos en tiempo real</li>
+          <li>Agregar servicios a la factura</li>
+          <li>Calcular el vuelto automáticamente</li>
+          <li>Descargar factura en PDF</li>
+          <li>La factura incluye el logo del negocio</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="icon-wrap g-purchases">📦</div>
+        <h3>Compras e ingresos</h3>
+        <p>Registra cuando compras mercancía:</p>
+        <ul>
+          <li>Registrar compras a proveedores</li>
+          <li>El inventario se actualiza solo</li>
+          <li>Control de costos</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="icon-wrap g-reports">📊</div>
+        <h3>Indicadores y reportes</h3>
+        <p>Ve cómo va el negocio:</p>
+        <ul>
+          <li>Ingresos, ganancias y costos del mes</li>
+          <li>Productos más vendidos</li>
+          <li>Clientes que más compran</li>
+          <li>Comparativa con meses anteriores</li>
+          <li>Gráficos visuales</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="icon-wrap g-day">🌟</div>
+        <h3>Resumen del día</h3>
+        <p>Revisa cómo fue un día específico:</p>
+        <ul>
+          <li>Total de ingresos del día</li>
+          <li>Productos vendidos ese día</li>
+          <li>Citas que hubo</li>
+          <li>Ventas por hora</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="icon-wrap g-payroll">💳</div>
+        <h3>Nómina de trabajadoras</h3>
+        <p>Controla los pagos al personal:</p>
+        <ul>
+          <li>Registrar trabajadoras con foto</li>
+          <li>Pagar por días trabajados</li>
+          <li>Ver historial de pagos</li>
+          <li>Filtrar por trabajadora y fecha</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="icon-wrap g-assistant">💬</div>
+        <h3>Asistente inteligente</h3>
+        <p>Un ayudante que sabe todo del negocio:</p>
+        <ul>
+          <li>Responde preguntas sobre productos</li>
+          <li>Da información de clientes y ventas</li>
+          <li>Habla en lenguaje natural</li>
+          <li>Ayuda a tomar decisiones</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="icon-wrap g-roles">🛡️</div>
+        <h3>Roles y permisos</h3>
+        <p>Cada usuario con su nivel:</p>
+        <ul>
+          <li><strong>Admin:</strong> acceso a todo</li>
+            <li><strong>Trabajador:</strong> ventas, citas, clientes, planes, notas</li>
+          <li>El admin puede cambiar contraseñas</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mapa de navegación -->
+  <div class="section">
+    <div class="section-title">¿Cómo te mueves dentro del sistema?</div>
+    <div class="mermaid-box">
+      <div class="mermaid">
+        flowchart LR
+          Inicio["🏠 Pantalla principal"] --> Productos["🧴 Productos"]
+          Inicio --> Clientes["🤝 Clientes"]
+          Inicio --> Citas["🗓️ Citas"]
+          Inicio --> Planes["📋 Planes"]
+          Inicio --> Notas["📝 Notas"]
+          Inicio --> Ventas["🧾 Ventas"]
+          Inicio --> Compras["📦 Compras"]
+          Inicio --> Reportes["📊 Indicadores"]
+          Inicio --> Resumen["🌟 Resumen del día"]
+          Inicio --> Nomina["💳 Nómina"]
+
+          Ventas --> Factura["🧾 Ver factura"]
+          Factura --> PDF["📄 Descargar PDF"]
+
+          Citas -->|"Botón Facturar"| NuevaVenta["➕ Crear factura"]
+          Planes -->|"Botón Facturar"| NuevaVenta
+      </div>
+    </div>
+  </div>
+
+  <!-- Roles -->
+  <div class="section">
+    <div class="section-title">¿Quién puede usar cada parte?</div>
+    <div class="mermaid-box">
+      <div class="mermaid">
+        flowchart LR
+          subgraph Admin["👑 Administrador"]
+            A1["🎯 Dashboard"]
+            A2["🧴 Productos"]
+            A3["🤝 Clientes"]
+            A4["🗓️ Citas"]
+            A5["📋 Planes"]
+            A6["📝 Notas"]
+            A8["🧾 Ventas"]
+            A9["📦 Compras"]
+            A10["📊 Indicadores"]
+            A11["🌟 Resumen del día"]
+            A12["💳 Nómina"]
+            A13["🔧 Configuración"]
+          end
+
+          subgraph Worker["👤 Trabajador"]
+            W1["🎯 Dashboard"]
+            W2["🤝 Clientes"]
+            W3["🗓️ Citas"]
+            W4["📋 Planes"]
+            W5["📝 Notas"]
+            W6["🧾 Ventas"]
+          end
+
+          Admin --- Worker
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    MASSS Cabellos — Sistema de Gestión
+  </div>
+</div>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'base',
+    themeVariables: {
+      fontFamily: 'Inter, sans-serif',
+      primaryColor: '#e88aa5',
+      primaryTextColor: '#3d2c33',
+      primaryBorderColor: '#f0e0e4',
+      lineColor: '#d4b8c0',
+      secondaryColor: '#fdf0f4',
+      tertiaryColor: '#faf5f3',
+      clusterBkg: '#fdf8f6',
+      clusterBorder: '#f0e0e4',
+    },
+    flowchart: { htmlLabels: true, curve: 'basis', padding: 12 },
+    securityLevel: 'loose',
+  });
+</script>
+</body>
+</html>

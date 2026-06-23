@@ -9,9 +9,11 @@ import {
   deleteSale,
   deletePurchase,
   deleteTreatmentPlan,
+  deleteNote,
+  deleteManufacture,
 } from "@/lib/actions";
 
-type EntityType = "product" | "client" | "appointment" | "sale" | "purchase" | "treatmentPlan";
+type EntityType = "product" | "client" | "appointment" | "sale" | "purchase" | "treatmentPlan" | "note" | "manufacture";
 
 const actions: Record<EntityType, (id: number) => Promise<void>> = {
   product: deleteProduct,
@@ -20,6 +22,8 @@ const actions: Record<EntityType, (id: number) => Promise<void>> = {
   sale: deleteSale,
   purchase: deletePurchase,
   treatmentPlan: deleteTreatmentPlan,
+  note: deleteNote,
+  manufacture: deleteManufacture,
 };
 
 export function DeleteButton({ id, type }: { id: number; type: EntityType }) {

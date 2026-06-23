@@ -9,6 +9,7 @@ export interface PeriodSummary {
   appointments: number;
   activePlans: number;
   productsPurchased: number;
+  productsManufactured: number;
   uniqueClients: number;
   salesCount: number;
   purchasesCount: number;

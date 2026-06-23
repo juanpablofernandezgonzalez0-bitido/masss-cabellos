@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { getCurrentUser } from "@/lib/session";
 
 export async function deleteProduct(id: number) {
   await prisma.product.update({ where: { id }, data: { isActive: false } });
@@ -48,7 +49,7 @@ export async function createTreatmentPlan(formData: FormData) {
           clientId,
           date: new Date(firstDate),
           time: firstTime || "",
-          type: "tratamiento",
+          type: "consulta",
           status: "pendiente",
           notes: `Sesión 1 de ${totalSessions} — ${description}`,
           sessionNumber: 1,
@@ -82,6 +83,39 @@ export async function deleteAppointment(id: number) {
 export async function deleteSale(id: number) {
   await prisma.sale.delete({ where: { id } });
   revalidatePath("/sales");
+}
+
+export async function deleteNote(id: number) {
+  const user = await getCurrentUser();
+  if (!user) throw new Error("No autorizado");
+  if (user.role !== "admin") {
+    const note = await prisma.note.findUnique({ where: { id }, select: { userId: true } });
+    if (!note || note.userId !== user.id) throw new Error("No autorizado");
+  }
+  await prisma.note.delete({ where: { id } });
+  revalidatePath("/notes");
+}
+
+export async function createNote(formData: FormData) {
+  const user = await getCurrentUser();
+  if (!user) throw new Error("No autorizado");
+  const title = formData.get("title") as string;
+  const content = formData.get("content") as string;
+  await prisma.note.create({ data: { title, content, userId: user.id } });
+  revalidatePath("/notes");
+}
+
+export async function updateNote(id: number, formData: FormData) {
+  const user = await getCurrentUser();
+  if (!user) throw new Error("No autorizado");
+  if (user.role !== "admin") {
+    const note = await prisma.note.findUnique({ where: { id }, select: { userId: true } });
+    if (!note || note.userId !== user.id) throw new Error("No autorizado");
+  }
+  const title = formData.get("title") as string;
+  const content = formData.get("content") as string;
+  await prisma.note.update({ where: { id }, data: { title, content } });
+  revalidatePath("/notes");
 }
 
 export async function deletePurchase(id: number) {
@@ -124,23 +158,27 @@ export async function updateProduct(id: number, formData: FormData) {
 
 export async function createClient(formData: FormData) {
   const name = formData.get("name") as string;
+  const apodo = formData.get("apodo") as string;
+  const direccion = formData.get("direccion") as string;
   const phone = formData.get("phone") as string;
   const email = formData.get("email") as string;
   const notes = formData.get("notes") as string;
 
-  await prisma.client.create({ data: { name, phone, email, notes } });
+  await prisma.client.create({ data: { name, apodo, direccion, phone, email, notes } });
   revalidatePath("/clients");
 }
 
 export async function updateClient(id: number, formData: FormData) {
   const name = formData.get("name") as string;
+  const apodo = formData.get("apodo") as string;
+  const direccion = formData.get("direccion") as string;
   const phone = formData.get("phone") as string;
   const email = formData.get("email") as string;
   const notes = formData.get("notes") as string;
 
   await prisma.client.update({
     where: { id },
-    data: { name, phone, email, notes },
+    data: { name, apodo, direccion, phone, email, notes },
   });
   revalidatePath("/clients");
 }
@@ -302,6 +340,69 @@ export async function createSale(formData: FormData) {
 
   revalidatePath("/sales");
   return sale.id;
+}
+
+export async function createManufacture(formData: FormData) {
+  const productId = parseInt(formData.get("productId") as string);
+  const quantity = parseInt(formData.get("quantity") as string) || 0;
+  const notes = (formData.get("notes") as string) || "";
+
+  if (!productId || quantity <= 0) throw new Error("Datos inválidos");
+
+  await prisma.$transaction([
+    prisma.manufacture.create({
+      data: { productId, quantity, notes },
+    }),
+    prisma.product.update({
+      where: { id: productId },
+      data: { stock: { increment: quantity } },
+    }),
+  ]);
+
+  revalidatePath("/inventory");
+  revalidatePath("/products");
+}
+
+export async function deleteManufacture(id: number) {
+  const record = await prisma.manufacture.findUnique({ where: { id } });
+  if (!record) throw new Error("Registro no encontrado");
+
+  await prisma.$transaction([
+    prisma.manufacture.delete({ where: { id } }),
+    prisma.product.update({
+      where: { id: record.productId },
+      data: { stock: { decrement: record.quantity } },
+    }),
+  ]);
+
+  revalidatePath("/inventory");
+  revalidatePath("/products");
+}
+
+export async function updateManufacture(id: number, formData: FormData) {
+  const quantity = parseInt(formData.get("quantity") as string) || 0;
+  const notes = (formData.get("notes") as string) || "";
+
+  if (quantity <= 0) throw new Error("Cantidad inválida");
+
+  const record = await prisma.manufacture.findUnique({ where: { id } });
+  if (!record) throw new Error("Registro no encontrado");
+
+  const diff = quantity - record.quantity;
+
+  await prisma.$transaction([
+    prisma.manufacture.update({
+      where: { id },
+      data: { quantity, notes },
+    }),
+    prisma.product.update({
+      where: { id: record.productId },
+      data: { stock: { increment: diff } },
+    }),
+  ]);
+
+  revalidatePath("/inventory");
+  revalidatePath("/products");
 }
 
 export async function createPurchase(formData: FormData) {

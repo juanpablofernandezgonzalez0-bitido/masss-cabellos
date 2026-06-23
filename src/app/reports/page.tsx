@@ -1,103 +1,57 @@
 import { prisma } from "@/lib/prisma";
 import {
   BarChart3, TrendingUp, DollarSign, ShoppingCart, Calendar,
-  Package, Users, Receipt, Truck, Clock, Star,
+  Package, Users, Receipt, Truck, Clock, Star, Factory,
   ArrowUpRight, ArrowDownRight,
 } from "lucide-react";
 import { MonthlySalesChart } from "./monthly-sales-chart";
 import { TopProductsChart } from "./top-products-chart";
 import { WeekdayAppointmentsChart } from "./weekday-chart";
-import { DatePicker } from "./date-picker";
+import { ReportsFilter } from "./reports-filter";
 import { formatCurrency } from "@/lib/utils";
 import type { Period, PeriodSummary, MonthlyData, TopProduct, WeekdayData, RecentSale, RecentPurchase, UpcomingAppointment } from "./types";
 
-function getDateRange(period: Period) {
-  const now = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const todayEnd = new Date(todayStart.getTime() + 86_400_000);
+const MONTHS = [
+  "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
+];
 
-  switch (period) {
-    case "today":
-      return { start: todayStart, end: todayEnd, label: "Hoy" };
-    case "week": {
-      const day = now.getDay();
-      const diff = day === 0 ? 6 : day - 1;
-      const weekStart = new Date(todayStart);
-      weekStart.setDate(weekStart.getDate() - diff);
-      return { start: weekStart, end: todayEnd, label: "Esta Semana" };
-    }
-    case "month":
-      return {
-        start: new Date(now.getFullYear(), now.getMonth(), 1),
-        end: new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59),
-        label: "Este Mes",
-      };
-    case "year":
-      return {
-        start: new Date(now.getFullYear(), 0, 1),
-        end: new Date(now.getFullYear(), 11, 31, 23, 59, 59),
-        label: "Este Año",
-      };
-  }
+function detectPeriod(year: number, month: number, date: string | undefined): Period {
+  if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) return "today";
+  if (month > 0) return "month";
+  return "year";
 }
 
-async function getPeriodSummary(period: Period): Promise<PeriodSummary> {
-  const { start, end } = getDateRange(period);
+function getDateRange(period: Period, year: number, month: number, date?: string) {
+  const now = new Date();
 
-  const [sales, purchases, appointments, activePlans, payrolls] = await Promise.all([
-    prisma.sale.findMany({
-      where: { createdAt: { gte: start, lte: end } },
-      include: { items: true, client: { select: { id: true, name: true } } },
-    }),
-    prisma.purchase.findMany({
-      where: { createdAt: { gte: start, lte: end } },
-      include: { items: true },
-    }),
-    prisma.appointment.findMany({
-      where: { date: { gte: start, lte: end } },
-    }),
-    prisma.treatmentPlan.findMany({
-      where: { status: "activo" },
-    }),
-    prisma.payroll.findMany({
-      where: { paidAt: { gte: start, lte: end } },
-    }),
-  ]);
+  if (period === "today" && date) {
+    const d = new Date(date + "T00:00:00");
+    return {
+      start: d,
+      end: new Date(date + "T23:59:59.999"),
+      label: d.toLocaleDateString("es-CO", { weekday: "long", year: "numeric", month: "long", day: "numeric" }),
+    };
+  }
 
-  const revenue = sales.reduce((s, x) => s + x.total, 0);
-  const purchaseExpenses = purchases.reduce((s, x) => s + x.total, 0);
-  const payrollExpenses = payrolls.reduce((s, x) => s + x.amount, 0);
-  const expenses = purchaseExpenses + payrollExpenses;
-  const productsSold = sales.reduce((s, x) => s + x.items.reduce((si, item) => si + item.quantity, 0), 0);
-  const productsPurchased = purchases.reduce((s, x) => s + x.items.reduce((si, item) => si + item.quantity, 0), 0);
-  const uniqueClients = new Set([
-    ...sales.filter((s) => s.clientId).map((s) => s.clientId),
-    ...appointments.map((a) => a.clientId),
-  ]).size;
-  const salesCount = sales.length;
-  const purchasesCount = purchases.length;
+  if (period === "month" && month > 0) {
+    const m = month - 1;
+    return {
+      start: new Date(year, m, 1),
+      end: new Date(year, m + 1, 0, 23, 59, 59),
+      label: `${MONTHS[m]} ${year}`,
+    };
+  }
 
   return {
-    revenue,
-    expenses,
-    payrollExpenses,
-    profit: revenue - expenses,
-    productsSold,
-    appointments: appointments.length,
-    activePlans: activePlans.length,
-    productsPurchased,
-    uniqueClients,
-    salesCount,
-    purchasesCount,
-    avgTicket: salesCount > 0 ? Math.round(revenue / salesCount) : 0,
+    start: new Date(year, 0, 1),
+    end: new Date(year, 11, 31, 23, 59, 59),
+    label: year === now.getFullYear() ? "Este Año" : `Año ${year}`,
   };
 }
 
-async function getDaySummary(dateStr: string): Promise<PeriodSummary> {
-  const start = new Date(dateStr + "T00:00:00");
-  const end = new Date(dateStr + "T23:59:59.999");
-
-  const [sales, purchases, appointments, activePlans, payrolls] = await Promise.all([
+async function getSummary(start: Date, end: Date): Promise<PeriodSummary> {
+  const [sales, purchases, appointments, activePlans, payrolls, manufactures] = await Promise.all([
     prisma.sale.findMany({
       where: { createdAt: { gte: start, lte: end } },
       include: { items: true, client: { select: { id: true, name: true } } },
@@ -115,6 +69,9 @@ async function getDaySummary(dateStr: string): Promise<PeriodSummary> {
     prisma.payroll.findMany({
       where: { paidAt: { gte: start, lte: end } },
     }),
+    prisma.manufacture.findMany({
+      where: { createdAt: { gte: start, lte: end } },
+    }),
   ]);
 
   const revenue = sales.reduce((s, x) => s + x.total, 0);
@@ -123,6 +80,7 @@ async function getDaySummary(dateStr: string): Promise<PeriodSummary> {
   const expenses = purchaseExpenses + payrollExpenses;
   const productsSold = sales.reduce((s, x) => s + x.items.reduce((si, item) => si + item.quantity, 0), 0);
   const productsPurchased = purchases.reduce((s, x) => s + x.items.reduce((si, item) => si + item.quantity, 0), 0);
+  const productsManufactured = manufactures.reduce((s, x) => s + x.quantity, 0);
   const uniqueClients = new Set([
     ...sales.filter((s) => s.clientId).map((s) => s.clientId),
     ...appointments.map((a) => a.clientId),
@@ -139,6 +97,7 @@ async function getDaySummary(dateStr: string): Promise<PeriodSummary> {
     appointments: appointments.length,
     activePlans: activePlans.length,
     productsPurchased,
+    productsManufactured,
     uniqueClients,
     salesCount,
     purchasesCount,
@@ -259,15 +218,14 @@ function getDayStats(summary: PeriodSummary) {
     { label: "Nómina", value: summary.payrollExpenses, icon: DollarSign, gradient: "from-[#e88aa5] to-[#d4708e]", light: "bg-[#e88aa5]/10", format: "currency" as const },
     { label: "Ganancia", value: summary.profit, icon: TrendingUp, gradient: "from-[#8ab4c8] to-[#7098b0]", light: "bg-[#8ab4c8]/10", format: "currency" as const },
     { label: "Prod. Vendidos", value: summary.productsSold, icon: Package, gradient: "from-[#f2b5a3] to-[#e09a88]", light: "bg-[#f2b5a3]/10", format: "number" as const },
+    { label: "Fabricados", value: summary.productsManufactured, icon: Factory, gradient: "from-[#6ee7b7] to-[#34d399]", light: "bg-[#6ee7b7]/10", format: "number" as const },
     { label: "Citas", value: summary.appointments, icon: Calendar, gradient: "from-[#a78bfa] to-[#8b5cf6]", light: "bg-[#a78bfa]/10", format: "number" as const },
-    { label: "Planes Activos", value: summary.activePlans, icon: Star, gradient: "from-[#fbbf24] to-[#f59e0b]", light: "bg-[#fbbf24]/10", format: "number" as const },
     { label: "Clientes Atend.", value: summary.uniqueClients, icon: Users, gradient: "from-[#f472b6] to-[#ec4899]", light: "bg-[#f472b6]/10", format: "number" as const },
   ];
 }
 
 function getMetricCards(summary: PeriodSummary) {
   return [
-
     { label: "Ventas Realizadas", value: summary.salesCount, icon: Receipt, color: "text-[var(--success)]", bg: "bg-[var(--success)]/10" },
     { label: "Compras Realizadas", value: summary.purchasesCount, icon: Truck, color: "text-[var(--primary)]", bg: "bg-[var(--primary)]/10" },
     {
@@ -283,56 +241,32 @@ function getMetricCards(summary: PeriodSummary) {
 export default async function ReportsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ period?: string; date?: string }>;
+  searchParams: Promise<{ year?: string; month?: string; date?: string }>;
 }) {
-  const { period: rawPeriod, date: rawDate } = await searchParams;
-
-  const hasSpecificDate = rawDate && /^\d{4}-\d{2}-\d{2}$/.test(rawDate);
-
-  const period: Period = hasSpecificDate
-    ? "today"
-    : (["today", "week", "month", "year"].includes(rawPeriod ?? "")
-      ? (rawPeriod as Period)
-      : "month");
+  const { year: rawYear, month: rawMonth, date: rawDate } = await searchParams;
 
   const now = new Date();
   const currentYear = now.getFullYear();
+  const selectedYear = rawYear ? parseInt(rawYear) : currentYear;
+  const selectedMonth = rawMonth ? parseInt(rawMonth) : 0;
 
-  let periodLabel: string;
-  let summary: PeriodSummary;
-
-  if (hasSpecificDate) {
-    const d = new Date(rawDate! + "T00:00:00");
-    periodLabel = d.toLocaleDateString("es-CO", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
-    summary = await getDaySummary(rawDate!);
-  } else {
-    periodLabel = getDateRange(period).label;
-    summary = await getPeriodSummary(period);
-  }
-
-  const todayStr = now.toISOString().split("T")[0];
+  const period = detectPeriod(selectedYear, selectedMonth, rawDate);
+  const { start, end, label } = getDateRange(period, selectedYear, selectedMonth, rawDate);
+  const summary = await getSummary(start, end);
 
   const [monthlyData, topProducts, weekdayData, { recentSales, recentPurchases, upcomingAppointments }] =
     await Promise.all([
-      getMonthlyData(currentYear),
-      getTopProducts(currentYear),
-      getWeekdayData(currentYear),
+      getMonthlyData(selectedYear),
+      getTopProducts(selectedYear),
+      getWeekdayData(selectedYear),
       getRecentItems(),
     ]);
 
   const dayCards = getDayStats(summary);
   const metricCards = getMetricCards(summary);
 
-  const periods: { key: Period; label: string }[] = [
-    { key: "today", label: "Hoy" },
-    { key: "week", label: "Semana" },
-    { key: "month", label: "Mes" },
-    { key: "year", label: "Año" },
-  ];
-
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[var(--secondary)]/10 to-[var(--primary)]/10">
@@ -345,42 +279,20 @@ export default async function ReportsPage({
         </div>
       </div>
 
-      {/* Period Selector */}
-      <div className="flex flex-wrap items-center gap-2">
-        {periods.map(({ key, label }) => (
-          <a
-            key={key}
-            href={`/reports?period=${key}`}
-            className={`rounded-lg px-4 py-2 text-sm font-medium transition-all ${
-              !hasSpecificDate && period === key
-                ? "bg-gradient-to-r from-[var(--primary)] to-[var(--primary-dark)] text-white shadow-lg shadow-[var(--primary)]/20"
-                : "border border-[var(--border)] bg-white text-[var(--muted-foreground)] hover:border-[var(--primary)] hover:text-[var(--primary)]"
-            }`}
-          >
-            {label}
-          </a>
-        ))}
-        <div className="h-6 w-px bg-[var(--border)] mx-1" />
-        <DatePicker selectedDate={hasSpecificDate ? rawDate! : ""} />
-        {hasSpecificDate && (
-          <a
-            href="/reports?period=month"
-            className="text-xs text-[var(--muted-foreground)] underline hover:text-[var(--primary)]"
-          >
-            Limpiar
-          </a>
-        )}
-      </div>
+      <ReportsFilter
+        selectedYear={selectedYear}
+        selectedMonth={selectedMonth}
+        selectedDate={rawDate || ""}
+        currentYear={currentYear}
+      />
 
-      {/* Period Label */}
       <div className="flex items-center gap-2">
         <Clock className="h-4 w-4 text-[var(--muted-foreground)]" />
         <span className="text-sm text-[var(--muted-foreground)]">
-          Resumen de <strong className="text-[var(--foreground)]">{periodLabel}</strong>
+          Resumen de <strong className="text-[var(--foreground)]">{label}</strong>
         </span>
       </div>
 
-      {/* Summary Cards Grid */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {dayCards.map(({ label, value, icon: Icon, gradient, light, format }) => (
           <div key={label} className="rounded-xl border border-[var(--border)] bg-white p-3 shadow-[var(--shadow-sm)]">
@@ -399,7 +311,6 @@ export default async function ReportsPage({
         ))}
       </div>
 
-      {/* Key Metrics */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {metricCards.map(({ label, value, icon: Icon, color, bg }) => (
           <div key={label} className="rounded-xl border border-[var(--border)] bg-white p-3 shadow-[var(--shadow-sm)]">
@@ -416,7 +327,6 @@ export default async function ReportsPage({
         ))}
       </div>
 
-      {/* Charts */}
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="rounded-2xl border border-[var(--border)] bg-white p-5 shadow-[var(--shadow-sm)]">
           <h2 className="mb-4 text-sm font-semibold text-[var(--foreground)]">Ingresos vs Gastos Mensuales</h2>
@@ -437,7 +347,6 @@ export default async function ReportsPage({
           <WeekdayAppointmentsChart data={weekdayData} />
         </div>
 
-        {/* Upcoming Appointments */}
         <div className="rounded-2xl border border-[var(--border)] bg-white shadow-[var(--shadow-sm)]">
           <div className="border-b border-[var(--border)] px-5 py-4">
             <div className="flex items-center gap-2">
@@ -472,9 +381,7 @@ export default async function ReportsPage({
         </div>
       </div>
 
-      {/* Recent Activity */}
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* Recent Sales */}
         <div className="rounded-2xl border border-[var(--border)] bg-white shadow-[var(--shadow-sm)]">
           <div className="border-b border-[var(--border)] px-5 py-4">
             <div className="flex items-center gap-2">
@@ -506,7 +413,6 @@ export default async function ReportsPage({
           </div>
         </div>
 
-        {/* Recent Purchases */}
         <div className="rounded-2xl border border-[var(--border)] bg-white shadow-[var(--shadow-sm)]">
           <div className="border-b border-[var(--border)] px-5 py-4">
             <div className="flex items-center gap-2">

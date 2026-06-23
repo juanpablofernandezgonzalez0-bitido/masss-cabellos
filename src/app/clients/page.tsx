@@ -10,6 +10,7 @@ async function getClients(q?: string) {
     ? {
         OR: [
           { name: { contains: q, mode: "insensitive" as const } },
+          { apodo: { contains: q, mode: "insensitive" as const } },
           { phone: { contains: q } },
           { email: { contains: q, mode: "insensitive" as const } },
         ],
@@ -80,7 +81,10 @@ export default async function ClientsPage({
                       <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-[#8ab4c8]/10 to-[#7098b0]/10 text-sm font-bold text-[#8ab4c8]">
                         {client.name.charAt(0).toUpperCase()}
                       </div>
-                      <span className="text-sm font-medium text-[var(--foreground)]">{client.name}</span>
+                      <div>
+                        <span className="text-sm font-medium text-[var(--foreground)]">{client.name}</span>
+                        {client.apodo && <span className="ml-1.5 text-xs text-[var(--muted-foreground)]">"{client.apodo}"</span>}
+                      </div>
                     </div>
                   </td>
                   <td className="px-4 py-3.5">

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Search, X } from "lucide-react";
 import Link from "next/link";
 
-export function ClientsFilter({ q }: { q?: string }) {
+export function NotesFilter({ q }: { q?: string }) {
   const router = useRouter();
   const timeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -14,7 +14,7 @@ export function ClientsFilter({ q }: { q?: string }) {
     timeoutRef.current = setTimeout(() => {
       const params = new URLSearchParams();
       if (e.target.value) params.set("q", e.target.value);
-      router.push(`/clients?${params.toString()}`);
+      router.push(`/notes?${params.toString()}`);
     }, 300);
   }, [router]);
 
@@ -24,7 +24,7 @@ export function ClientsFilter({ q }: { q?: string }) {
         <input
           defaultValue={q || ""}
           onChange={handleChange}
-          placeholder="Buscar por nombre, apodo, teléfono o email..."
+          placeholder="Buscar notas por título..."
           className="form-input"
           style={{ paddingLeft: "2.25rem" }}
         />
@@ -32,7 +32,7 @@ export function ClientsFilter({ q }: { q?: string }) {
       </div>
       {q && (
         <Link
-          href="/clients"
+          href="/notes"
           className="inline-flex items-center gap-1 rounded-xl px-3 py-2.5 text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
         >
           <X className="h-4 w-4" />

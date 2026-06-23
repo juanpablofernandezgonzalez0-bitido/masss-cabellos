@@ -2,7 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { Plus, Calendar, Clock, User, CheckCircle, DollarSign } from "lucide-react";
 import { DeleteButton } from "@/components/delete-button";
-import { formatDate } from "@/lib/utils";
+import { formatDate, formatTime12h } from "@/lib/utils";
 import { CompleteButton } from "@/components/complete-button";
 import { AppointmentsFilter } from "./appointments-filter";
 
@@ -24,7 +24,7 @@ async function getAppointments(q?: string, dateFilter?: string) {
 
   return prisma.appointment.findMany({
     where,
-    orderBy: [{ date: "desc" }, { time: "desc" }],
+    orderBy: [{ date: "desc" }, { time: "asc" }],
     include: { client: true, treatmentPlan: true },
   });
 }
@@ -36,10 +36,9 @@ const statusStyles: Record<string, string> = {
 };
 
 const typeLabels: Record<string, string> = {
-  revision: "Revisión",
-  tratamiento: "Tratamiento",
+  valoracion: "Valoración",
   consulta: "Consulta",
-  seguimiento: "Seguimiento",
+  saneo: "Saneo de puntas",
 };
 
 export default async function AppointmentsPage({
@@ -104,7 +103,7 @@ export default async function AppointmentsPage({
                   <td className="hidden px-4 py-3.5 sm:table-cell">
                     <div className="flex items-center gap-1.5 text-sm text-[var(--muted-foreground)]">
                       <Clock className="h-3.5 w-3.5" />
-                      {a.time || "—"}
+                      {formatTime12h(a.time)}
                     </div>
                   </td>
                   <td className="hidden px-4 py-3.5 text-sm capitalize text-[var(--foreground)] md:table-cell">
@@ -154,7 +153,7 @@ export default async function AppointmentsPage({
                         >
                           Ver Factura
                         </Link>
-                      ) : a.status === "pendiente" && !a.treatmentPlanId ? (
+                      ) : a.status !== "cancelada" && !a.treatmentPlanId ? (
                         <Link
                           href={`/sales/new?appointmentId=${a.id}`}
                           className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium text-[var(--success)] transition-all hover:bg-[var(--success)]/10"

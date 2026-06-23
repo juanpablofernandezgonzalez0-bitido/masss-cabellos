@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { Plus, Package, AlertTriangle, Tags, GripVertical, ChevronUp, ChevronDown } from "lucide-react";
+import { Plus, Package, AlertTriangle, Tags, GripVertical, ChevronUp, ChevronDown, DollarSign, Warehouse } from "lucide-react";
 import { DeleteButton } from "@/components/delete-button";
 
 interface Product {
@@ -11,6 +11,7 @@ interface Product {
   description: string;
   category: string;
   price: number;
+  cost: number;
   stock: number;
   minStock: number;
   image: string;
@@ -23,6 +24,11 @@ export default function ProductsPage() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
+
+  const totalProducts = products.length;
+  const totalStock = products.reduce((s, p) => s + p.stock, 0);
+  const inventoryValue = products.reduce((s, p) => s + p.cost * p.stock, 0);
+  const lowStockCount = products.filter((p) => p.stock <= p.minStock).length;
 
   useEffect(() => {
     Promise.all([
@@ -123,6 +129,53 @@ export default function ProductsPage() {
         )}
       </div>
 
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="rounded-xl border border-[var(--border)] bg-white p-4 shadow-[var(--shadow-sm)]">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--primary)]/10">
+              <Package className="h-4 w-4 text-[var(--primary)]" />
+            </div>
+            <div>
+              <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--muted-foreground)]">Productos</p>
+              <p className="text-xl font-bold text-[var(--foreground)]">{totalProducts}</p>
+            </div>
+          </div>
+        </div>
+        <div className="rounded-xl border border-[var(--border)] bg-white p-4 shadow-[var(--shadow-sm)]">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--success)]/10">
+              <DollarSign className="h-4 w-4 text-[var(--success)]" />
+            </div>
+            <div>
+              <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--muted-foreground)]">Valor Inventario</p>
+              <p className="text-xl font-bold text-[var(--success)]">${inventoryValue.toLocaleString()}</p>
+            </div>
+          </div>
+        </div>
+        <div className="rounded-xl border border-[var(--border)] bg-white p-4 shadow-[var(--shadow-sm)]">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--secondary)]/10">
+              <Warehouse className="h-4 w-4 text-[var(--secondary)]" />
+            </div>
+            <div>
+              <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--muted-foreground)]">Stock Total</p>
+              <p className="text-xl font-bold text-[var(--foreground)]">{totalStock}</p>
+            </div>
+          </div>
+        </div>
+        <div className="rounded-xl border border-[var(--border)] bg-white p-4 shadow-[var(--shadow-sm)]">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--warning)]/10">
+              <AlertTriangle className="h-4 w-4 text-[var(--warning)]" />
+            </div>
+            <div>
+              <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--muted-foreground)]">Stock Bajo</p>
+              <p className={`text-xl font-bold ${lowStockCount > 0 ? "text-red-500" : "text-[var(--foreground)]"}`}>{lowStockCount}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {products.map((product, index) => (
           <div
@@ -135,12 +188,14 @@ export default function ProductsPage() {
           >
             <div className="relative aspect-square overflow-hidden bg-white">
               {product.image ? (
-                <img
-                  src={product.image}
-                  alt={product.name}
-                  className="h-full w-full object-cover object-center transition-all duration-500 group-hover:scale-110 group-hover:brightness-105"
-                  draggable={false}
-                />
+                  <img
+                    src={product.image}
+                    alt={product.name}
+                    className="h-full w-full object-cover object-center transition-all duration-500 group-hover:scale-110 group-hover:brightness-105"
+                    draggable={false}
+                    loading="lazy"
+                    decoding="async"
+                  />
               ) : (
                 <div className="flex h-full flex-col items-center justify-center gap-2">
                   <Package className="h-12 w-12 text-[var(--muted-foreground)]/40" />

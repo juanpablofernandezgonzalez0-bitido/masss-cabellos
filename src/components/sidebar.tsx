@@ -15,6 +15,8 @@ import {
   ClipboardList,
   Sun,
   DollarSign,
+  StickyNote,
+  FlaskConical,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -30,6 +32,7 @@ export function Sidebar({ role, isOpen, onClose }: SidebarProps) {
   const links = [
     { href: "/", label: "Dashboard", icon: LayoutDashboard },
     ...(isAdmin ? [{ href: "/products", label: "Productos", icon: Package }] : []),
+    ...(isAdmin ? [{ href: "/inventory", label: "Inventario", icon: FlaskConical }] : []),
     { href: "/clients", label: "Clientes", icon: Users },
     { href: "/appointments", label: "Citas", icon: Calendar },
     { href: "/treatment-plans", label: "Planes", icon: ClipboardList },
@@ -38,6 +41,7 @@ export function Sidebar({ role, isOpen, onClose }: SidebarProps) {
     ...(isAdmin ? [{ href: "/reports", label: "Indicadores", icon: BarChart3 }] : []),
     ...(isAdmin ? [{ href: "/day-summary", label: "Resumen del Día", icon: Sun }] : []),
     ...(isAdmin ? [{ href: "/payroll", label: "Nómina", icon: DollarSign }] : []),
+    { href: "/notes", label: "Notas", icon: StickyNote },
   ];
 
   return (

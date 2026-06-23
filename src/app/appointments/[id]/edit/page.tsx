@@ -53,10 +53,9 @@ export default async function EditAppointmentPage({ params }: { params: Promise<
           <div>
             <label className="mb-2 block text-sm font-medium text-[var(--foreground)]">Tipo de Cita</label>
             <select name="type" defaultValue={appointment.type} className="form-input">
-              <option value="revision">Revisión</option>
-              <option value="tratamiento">Tratamiento</option>
+              <option value="valoracion">Valoración</option>
               <option value="consulta">Consulta</option>
-              <option value="seguimiento">Seguimiento</option>
+              <option value="saneo">Saneo de puntas</option>
             </select>
           </div>
           <div>

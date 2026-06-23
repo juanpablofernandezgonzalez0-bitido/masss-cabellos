@@ -31,6 +31,14 @@ export default async function EditClientPage({ params }: { params: Promise<{ id:
             <input name="name" required defaultValue={client.name} className="form-input" />
           </div>
           <div>
+            <label className="mb-2 block text-sm font-medium text-[var(--foreground)]">Apodo</label>
+            <input name="apodo" defaultValue={client.apodo} className="form-input" placeholder="Ej: Mari" />
+          </div>
+          <div>
+            <label className="mb-2 block text-sm font-medium text-[var(--foreground)]">Dirección</label>
+            <input name="direccion" defaultValue={client.direccion} className="form-input" placeholder="Cra 1 # 2-3" />
+          </div>
+          <div>
             <label className="mb-2 block text-sm font-medium text-[var(--foreground)]">Teléfono</label>
             <input name="phone" type="tel" defaultValue={client.phone} className="form-input" />
           </div>
