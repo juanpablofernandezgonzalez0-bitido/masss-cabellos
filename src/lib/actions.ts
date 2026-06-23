@@ -265,8 +265,18 @@ export async function completeAppointment(id: number) {
 }
 
 export async function createSale(formData: FormData) {
-  const clientIdStr = formData.get("clientId") as string;
-  const clientId = clientIdStr ? parseInt(clientIdStr) : null;
+  let clientIdStr = formData.get("clientId") as string;
+  const clientName = formData.get("clientName") as string;
+  let clientId: number | null = clientIdStr ? parseInt(clientIdStr) : null;
+
+  if (!clientId && clientName) {
+    let client = await prisma.client.findFirst({ where: { name: clientName } });
+    if (!client) {
+      client = await prisma.client.create({ data: { name: clientName } });
+    }
+    clientId = client.id;
+  }
+
   const appointmentIdStr = formData.get("appointmentId") as string;
   const appointmentId = appointmentIdStr ? parseInt(appointmentIdStr) : null;
 

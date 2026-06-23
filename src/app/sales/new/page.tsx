@@ -43,6 +43,7 @@ export default function NewSalePage() {
   const [filteredProducts, setFilteredProducts] = useState<ProductOption[]>([]);
   const [clients, setClients] = useState<ClientOption[]>([]);
   const [preselectedClientId, setPreselectedClientId] = useState("");
+  const [clientName, setClientName] = useState("");
   const [planDescription, setPlanDescription] = useState("");
   const [planPrice, setPlanPrice] = useState(0);
   const [planTotalSessions, setPlanTotalSessions] = useState(0);
@@ -70,6 +71,8 @@ export default function NewSalePage() {
       if (planData && !planLoaded.current) {
         planLoaded.current = true;
         setPreselectedClientId(String(planData.clientId));
+        const planClient = clientsData.find((c: ClientOption) => c.id === planData.clientId);
+        if (planClient) setClientName(planClient.name);
         setPlanDescription(planData.description);
         setPlanPrice(planData.price);
         setPlanTotalSessions(planData.totalSessions);
@@ -85,6 +88,8 @@ export default function NewSalePage() {
 
       if (appointmentData && appointmentData.clientId) {
         setPreselectedClientId(String(appointmentData.clientId));
+        const aptClient = clientsData.find((c: ClientOption) => c.id === appointmentData.clientId);
+        if (aptClient) setClientName(aptClient.name);
         const service = appointmentData.type || "servicio";
         const serviceLabel = service.charAt(0).toUpperCase() + service.slice(1);
         setAppointmentInfo(`Cita: ${serviceLabel}`);
@@ -162,8 +167,9 @@ export default function NewSalePage() {
     setSubmitting(true);
 
     const formData = new FormData();
-    const clientSelect = formRef.current?.querySelector<HTMLSelectElement>('[name="clientId"]');
-    formData.set("clientId", clientSelect?.value || "");
+    const clientInput = formRef.current?.querySelector<HTMLInputElement>('[name="clientName"]');
+    formData.set("clientName", clientInput?.value || "");
+    if (preselectedClientId) formData.set("clientId", preselectedClientId);
     if (appointmentId) formData.set("appointmentId", appointmentId);
 
     const payload = items.filter((item) => {
@@ -208,12 +214,22 @@ export default function NewSalePage() {
             <User className="h-4 w-4 text-[var(--muted-foreground)]" />
             Cliente (opcional)
           </label>
-          <select name="clientId" className="form-input" value={preselectedClientId} onChange={(e) => setPreselectedClientId(e.target.value)}>
-            <option value="">Cliente General</option>
+          <input
+            name="clientName"
+            list="clients-list"
+            value={clientName}
+            onChange={(e) => {
+              setClientName(e.target.value);
+              setPreselectedClientId("");
+            }}
+            placeholder="Cliente General (o escribe un nombre nuevo)"
+            className="form-input"
+          />
+          <datalist id="clients-list">
             {clients.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
+              <option key={c.id} value={c.name} />
             ))}
-          </select>
+          </datalist>
           {planId && (
             <p className="mt-1 text-xs text-[var(--primary)]">Vinculado al plan de tratamiento</p>
           )}

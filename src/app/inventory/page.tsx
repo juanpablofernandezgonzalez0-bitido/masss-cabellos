@@ -1,41 +1,50 @@
 import { prisma } from "@/lib/prisma";
 import { createManufacture } from "@/lib/actions";
 import { Plus, FlaskConical, Factory, Calendar, Package, Edit3 } from "lucide-react";
-import { DeleteButton } from "@/components/delete-button";
 import { formatDateTime } from "@/lib/utils";
 import Link from "next/link";
 import { InventoryFilter } from "./inventory-filter";
 import { InventorySearch } from "./inventory-search";
+import { DeleteButton } from "@/components/delete-button";
 
-type Period = "week" | "month" | "year";
+type Period = "today" | "month" | "year";
 
-function getDateRange(period: Period) {
-  const now = new Date();
-  const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+const MONTHS = [
+  "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
+];
 
-  switch (period) {
-    case "week": {
-      const day = now.getDay();
-      const diff = day === 0 ? 6 : day - 1;
-      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - diff);
-      return { start, label: "Esta Semana" };
-    }
-    case "month":
-      return {
-        start: new Date(now.getFullYear(), now.getMonth(), 1),
-        label: "Este Mes",
-      };
-    case "year":
-      return {
-        start: new Date(now.getFullYear(), 0, 1),
-        label: "Este Año",
-      };
-  }
+function detectPeriod(month: number, date: string | undefined): Period {
+  if (date) return "today";
+  if (month > 0) return "month";
+  return "year";
 }
 
-async function getData(period: Period, q?: string) {
-  const { start } = getDateRange(period);
+function getDateRange(period: Period, year: number, month: number, date?: string) {
+  if (period === "today" && date) {
+    return {
+      start: new Date(date + "T00:00:00"),
+      end: new Date(date + "T23:59:59.999"),
+      label: new Date(date + "T00:00:00").toLocaleDateString("es-CO", { weekday: "long", year: "numeric", month: "long", day: "numeric" }),
+    };
+  }
 
+  if (period === "month" && month > 0) {
+    return {
+      start: new Date(year, month - 1, 1),
+      end: new Date(year, month, 0, 23, 59, 59),
+      label: MONTHS[month - 1],
+    };
+  }
+
+  return {
+    start: new Date(year, 0, 1),
+    end: new Date(year, 11, 31, 23, 59, 59),
+    label: String(year),
+  };
+}
+
+async function getData(start: Date, end: Date, q?: string) {
   const [products, records] = await Promise.all([
     prisma.product.findMany({
       where: { isActive: true },
@@ -44,7 +53,7 @@ async function getData(period: Period, q?: string) {
     }),
     prisma.manufacture.findMany({
       where: {
-        createdAt: { gte: start },
+        createdAt: { gte: start, lte: end },
         ...(q ? { product: { name: { contains: q, mode: "insensitive" as const } } } : {}),
       },
       orderBy: { createdAt: "desc" },
@@ -68,15 +77,20 @@ async function getData(period: Period, q?: string) {
 export default async function InventoryPage({
   searchParams,
 }: {
-  searchParams: Promise<{ period?: string; q?: string }>;
+  searchParams: Promise<{ year?: string; month?: string; date?: string; q?: string }>;
 }) {
-  const { period: rawPeriod, q } = await searchParams;
-  const period: Period = ["week", "month", "year"].includes(rawPeriod ?? "")
-    ? (rawPeriod as Period)
-    : "month";
+  const { year: rawYear, month: rawMonth, date: rawDate, q } = await searchParams;
 
-  const { products, records, totalQuantity, byProduct } = await getData(period, q);
-  const { label } = getDateRange(period);
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const selectedYear = rawYear ? parseInt(rawYear) : currentYear;
+  const selectedMonth = rawMonth ? parseInt(rawMonth) : 0;
+  const selectedDate = rawDate || "";
+
+  const period = detectPeriod(selectedMonth, rawDate);
+  const { start, end, label } = getDateRange(period, selectedYear, selectedMonth, rawDate);
+
+  const { products, records, totalQuantity, byProduct } = await getData(start, end, q);
 
   return (
     <div className="space-y-6">
@@ -92,7 +106,12 @@ export default async function InventoryPage({
         </div>
       </div>
 
-      <InventoryFilter period={period} />
+      <InventoryFilter
+        selectedYear={selectedYear}
+        selectedMonth={selectedMonth}
+        selectedDate={selectedDate}
+        currentYear={currentYear}
+      />
 
       <div className="flex items-center gap-2">
         <Factory className="h-4 w-4 text-[var(--muted-foreground)]" />
@@ -102,55 +121,59 @@ export default async function InventoryPage({
       </div>
 
       {/* Register form */}
-      <div className="rounded-2xl border border-[var(--border)] bg-white p-5 shadow-[var(--shadow-sm)]">
-        <div className="mb-4 flex items-center gap-2">
+      <div className="rounded-2xl border border-[var(--border)] bg-white p-5 shadow-[var(--shadow-sm)] sm:p-6">
+        <div className="mb-5 flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-[#a18cd1]/10 to-[#fbc2eb]/10">
             <Plus className="h-4 w-4 text-[#a18cd1]" />
           </div>
           <h2 className="font-semibold text-[var(--foreground)]">Registrar Fabricación</h2>
         </div>
-        <form action={createManufacture} className="flex flex-wrap items-end gap-3">
-          <div className="min-w-[200px] flex-1">
-            <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">Producto</label>
-            <select
-              name="productId"
-              required
-              className="w-full rounded-lg border border-[var(--border)] bg-white py-2.5 pl-3 pr-3 text-sm text-[var(--foreground)] outline-none transition-colors focus:border-[#a18cd1] focus:ring-1 focus:ring-[#a18cd1]"
+        <form action={createManufacture} className="space-y-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-[1fr_140px_1fr] sm:items-end">
+            <div>
+              <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">Producto</label>
+              <select
+                name="productId"
+                required
+                className="w-full rounded-lg border border-[var(--border)] bg-white py-2.5 pl-3 pr-3 text-sm text-[var(--foreground)] outline-none transition-colors focus:border-[#a18cd1] focus:ring-1 focus:ring-[#a18cd1]"
+              >
+                <option value="">Seleccionar...</option>
+                {products.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} (stock: {p.stock})
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">Cantidad</label>
+              <input
+                name="quantity"
+                type="number"
+                min="1"
+                required
+                className="w-full rounded-lg border border-[var(--border)] bg-white py-2.5 pl-3 pr-3 text-sm text-[var(--foreground)] outline-none transition-colors focus:border-[#a18cd1] focus:ring-1 focus:ring-[#a18cd1]"
+                placeholder="0"
+              />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">Notas</label>
+              <input
+                name="notes"
+                className="w-full rounded-lg border border-[var(--border)] bg-white py-2.5 pl-3 pr-3 text-sm text-[var(--foreground)] outline-none transition-colors focus:border-[#a18cd1] focus:ring-1 focus:ring-[#a18cd1]"
+                placeholder="Opcional"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-[#a18cd1] to-[#d57eeb] px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:shadow-md"
             >
-              <option value="">Seleccionar...</option>
-              {products.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name} (stock: {p.stock})
-                </option>
-              ))}
-            </select>
+              <Plus className="h-4 w-4" />
+              Registrar
+            </button>
           </div>
-          <div className="w-28">
-            <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">Cantidad</label>
-            <input
-              name="quantity"
-              type="number"
-              min="1"
-              required
-              className="w-full rounded-lg border border-[var(--border)] bg-white py-2.5 pl-3 pr-3 text-sm text-[var(--foreground)] outline-none transition-colors focus:border-[#a18cd1] focus:ring-1 focus:ring-[#a18cd1]"
-              placeholder="0"
-            />
-          </div>
-          <div className="min-w-[160px] flex-1">
-            <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">Notas</label>
-            <input
-              name="notes"
-              className="w-full rounded-lg border border-[var(--border)] bg-white py-2.5 pl-3 pr-3 text-sm text-[var(--foreground)] outline-none transition-colors focus:border-[#a18cd1] focus:ring-1 focus:ring-[#a18cd1]"
-              placeholder="Opcional"
-            />
-          </div>
-          <button
-            type="submit"
-            className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-[#a18cd1] to-[#d57eeb] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:shadow-md"
-          >
-            <Plus className="h-4 w-4" />
-            Registrar
-          </button>
         </form>
       </div>
 

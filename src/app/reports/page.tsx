@@ -132,9 +132,9 @@ async function getMonthlyData(year: number): Promise<MonthlyData[]> {
   });
 }
 
-async function getTopProducts(year: number): Promise<TopProduct[]> {
+async function getTopProducts(start: Date, end: Date): Promise<TopProduct[]> {
   const sales = await prisma.sale.findMany({
-    where: { createdAt: { gte: new Date(year, 0, 1) } },
+    where: { createdAt: { gte: start, lte: end } },
     include: { items: { include: { product: true } } },
   });
 
@@ -152,9 +152,9 @@ async function getTopProducts(year: number): Promise<TopProduct[]> {
   return Object.values(acc).sort((a, b) => b.quantity - a.quantity).slice(0, 10);
 }
 
-async function getWeekdayData(year: number): Promise<WeekdayData[]> {
+async function getWeekdayData(start: Date, end: Date): Promise<WeekdayData[]> {
   const appointments = await prisma.appointment.findMany({
-    where: { date: { gte: new Date(year, 0, 1) } },
+    where: { date: { gte: start, lte: end } },
   });
   const count = Array(7).fill(0);
   for (const a of appointments) {
@@ -163,18 +163,36 @@ async function getWeekdayData(year: number): Promise<WeekdayData[]> {
   return ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"].map((day, i) => ({ day, citas: count[i] }));
 }
 
-async function getRecentItems(): Promise<{
+async function getManufacturedProducts(start: Date, end: Date): Promise<TopProduct[]> {
+  const records = await prisma.manufacture.findMany({
+    where: { createdAt: { gte: start, lte: end } },
+    include: { product: { select: { name: true } } },
+  });
+
+  const acc: Record<number, TopProduct> = {};
+  for (const r of records) {
+    if (!acc[r.productId]) {
+      acc[r.productId] = { name: r.product.name, quantity: 0, revenue: 0 };
+    }
+    acc[r.productId].quantity += r.quantity;
+  }
+  return Object.values(acc).sort((a, b) => b.quantity - a.quantity).slice(0, 10);
+}
+
+async function getRecentItems(start: Date, end: Date): Promise<{
   recentSales: RecentSale[];
   recentPurchases: RecentPurchase[];
   upcomingAppointments: UpcomingAppointment[];
 }> {
   const [sales, purchases, appointments] = await Promise.all([
     prisma.sale.findMany({
+      where: { createdAt: { gte: start, lte: end } },
       take: 10,
       orderBy: { createdAt: "desc" },
       include: { client: { select: { name: true } }, _count: { select: { items: true } } },
     }),
     prisma.purchase.findMany({
+      where: { createdAt: { gte: start, lte: end } },
       take: 10,
       orderBy: { createdAt: "desc" },
     }),
@@ -254,12 +272,13 @@ export default async function ReportsPage({
   const { start, end, label } = getDateRange(period, selectedYear, selectedMonth, rawDate);
   const summary = await getSummary(start, end);
 
-  const [monthlyData, topProducts, weekdayData, { recentSales, recentPurchases, upcomingAppointments }] =
+  const [monthlyData, topProducts, manufacturedProducts, weekdayData, { recentSales, recentPurchases, upcomingAppointments }] =
     await Promise.all([
       getMonthlyData(selectedYear),
-      getTopProducts(selectedYear),
-      getWeekdayData(selectedYear),
-      getRecentItems(),
+      getTopProducts(start, end),
+      getManufacturedProducts(start, end),
+      getWeekdayData(start, end),
+      getRecentItems(start, end),
     ]);
 
   const dayCards = getDayStats(summary);
@@ -338,7 +357,14 @@ export default async function ReportsPage({
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="rounded-2xl border border-[var(--border)] bg-white p-5 shadow-[var(--shadow-sm)]">
+          <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold text-[var(--foreground)]">
+            <Factory className="h-4 w-4 text-[#34d399]" />
+            Productos Fabricados
+          </h2>
+          <TopProductsChart data={manufacturedProducts} manufactured />
+        </div>
         <div className="rounded-2xl border border-[var(--border)] bg-white p-5 shadow-[var(--shadow-sm)]">
           <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold text-[var(--foreground)]">
             <Calendar className="h-4 w-4 text-[var(--secondary)]" />
