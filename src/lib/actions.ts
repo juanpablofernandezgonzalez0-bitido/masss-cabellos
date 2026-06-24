@@ -4,6 +4,17 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/session";
 
+function parseTime(formData: FormData, prefix: string): string {
+  const hour12 = parseInt(formData.get(`${prefix}_hour`) as string);
+  const minute = parseInt(formData.get(`${prefix}_minute`) as string);
+  const period = formData.get(`${prefix}_period`) as string;
+  if (isNaN(hour12) || isNaN(minute)) return "";
+  const h = period === "PM" && hour12 !== 12 ? hour12 + 12
+    : period === "AM" && hour12 === 12 ? 0
+    : hour12;
+  return `${h.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`;
+}
+
 export async function deleteProduct(id: number) {
   await prisma.product.update({ where: { id }, data: { isActive: false } });
   revalidatePath("/products");
@@ -21,7 +32,7 @@ export async function createTreatmentPlan(formData: FormData) {
   const totalSessions = parseInt(formData.get("totalSessions") as string) || 1;
   const price = parseFloat(formData.get("price") as string) || 0;
   const firstDate = formData.get("firstDate") as string;
-  const firstTime = formData.get("firstTime") as string;
+  const firstTime = parseTime(formData, "firstTime");
 
   let clientId: number;
   if (clientIdStr) {
@@ -203,7 +214,7 @@ export async function createAppointment(formData: FormData) {
   if (!dateStr) throw new Error("La fecha es obligatoria");
   const date = new Date(dateStr + "T05:00:00.000Z");
   if (isNaN(date.getTime())) throw new Error("Fecha inválida");
-  const time = formData.get("time") as string || "";
+  const time = parseTime(formData, "time");
   const type = (formData.get("type") as string) || "consulta";
   const notes = (formData.get("notes") as string) || "";
   const treatmentPlanIdStr = formData.get("treatmentPlanId") as string;
@@ -257,7 +268,7 @@ export async function createAppointment(formData: FormData) {
 export async function updateAppointment(id: number, formData: FormData) {
   const clientId = parseInt(formData.get("clientId") as string);
   const date = new Date(formData.get("date") + "T05:00:00.000Z");
-  const time = formData.get("time") as string;
+  const time = parseTime(formData, "time");
   const type = formData.get("type") as string;
   const status = formData.get("status") as string;
   const notes = formData.get("notes") as string;
