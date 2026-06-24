@@ -1,13 +1,12 @@
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
+import { getLocalDateBounds } from "@/lib/utils";
 import { Package, Users, Calendar, ShoppingCart, AlertTriangle, TrendingUp, DollarSign, ArrowRight, Clock, Star, Receipt } from "lucide-react";
 import Link from "next/link";
 
 async function getDashboardData() {
   try {
-    const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const todayEnd = new Date(todayStart.getTime() + 86_400_000);
+    const { start: todayStart, end: todayEnd } = getLocalDateBounds();
 
     const [productCount, clientCount, appointmentCount, salesCount, allProducts, todaySalesDetailed, recentAppointments, totalRevenue, todaySalesCount, todayAppts] =
       await Promise.all([
