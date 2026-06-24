@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
-import { Package, Users, Calendar, ShoppingCart, AlertTriangle, TrendingUp, DollarSign, ArrowRight, Clock, Star } from "lucide-react";
+import { Package, Users, Calendar, ShoppingCart, AlertTriangle, TrendingUp, DollarSign, ArrowRight, Clock, Star, Receipt } from "lucide-react";
 import Link from "next/link";
 
 async function getDashboardData() {
@@ -9,34 +9,39 @@ async function getDashboardData() {
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const todayEnd = new Date(todayStart.getTime() + 86_400_000);
 
-    const [productCount, clientCount, appointmentCount, salesCount, allProducts, recentSales, recentAppointments, totalRevenue, todaySales, todayAppts] =
+    const [productCount, clientCount, appointmentCount, salesCount, allProducts, todaySalesDetailed, recentAppointments, totalRevenue, todaySalesCount, todayAppts] =
       await Promise.all([
         prisma.product.count({ where: { isActive: true } }),
         prisma.client.count(),
         prisma.appointment.count({ where: { status: "pendiente" } }),
         prisma.sale.count(),
         prisma.product.findMany({ where: { isActive: true } }),
-        prisma.sale.findMany({ orderBy: { createdAt: "desc" }, take: 5, include: { client: true, items: { include: { product: true } } } }),
+        prisma.sale.findMany({
+          where: { createdAt: { gte: todayStart, lte: todayEnd } },
+          orderBy: { createdAt: "desc" },
+          take: 50,
+          include: { client: true, items: { include: { product: true } } },
+        }),
         prisma.appointment.findMany({ orderBy: [{ date: "asc" }, { time: "asc" }], take: 5, include: { client: true }, where: { status: "pendiente", date: { gte: todayStart } } }),
         prisma.sale.aggregate({ _sum: { total: true } }),
-        prisma.sale.findMany({ where: { createdAt: { gte: todayStart, lte: todayEnd } } }),
+        prisma.sale.count({ where: { createdAt: { gte: todayStart, lte: todayEnd } } }),
         prisma.appointment.count({ where: { date: { gte: todayStart, lte: todayEnd }, status: "pendiente" } }),
       ]);
 
     const lowStockProducts = allProducts.filter((p) => p.stock < p.minStock).slice(0, 5);
-    const todayRevenue = todaySales.reduce((s, x) => s + x.total, 0);
+    const todayRevenue = todaySalesDetailed.reduce((s, x) => s + x.total, 0);
 
     return {
       productCount, clientCount, appointmentCount, salesCount,
-      lowStockProducts, recentSales, recentAppointments,
+      lowStockProducts, todaySalesDetailed, recentAppointments,
       totalRevenue: totalRevenue._sum.total || 0,
-      todaySales: todaySales.length, todayRevenue, todayAppts,
+      todaySales: todaySalesCount, todayRevenue, todayAppts,
     };
   } catch (error) {
     console.error("Error cargando dashboard:", error);
     return {
       productCount: 0, clientCount: 0, appointmentCount: 0, salesCount: 0,
-      lowStockProducts: [], recentSales: [], recentAppointments: [],
+      lowStockProducts: [], todaySalesDetailed: [], recentAppointments: [],
       totalRevenue: 0, todaySales: 0, todayRevenue: 0, todayAppts: 0,
     };
   }
@@ -225,27 +230,36 @@ export default async function Home() {
         </div>
       </div>
 
-      {/* Recent Sales */}
+      {/* Today's Sales */}
       <div className="rounded-2xl border border-[var(--border)] bg-white p-5 shadow-[var(--shadow-sm)]">
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50">
               <TrendingUp className="h-4 w-4 text-emerald-500" />
             </div>
-            <h2 className="font-semibold text-[var(--foreground)]">Últimas Ventas</h2>
+            <h2 className="font-semibold text-[var(--foreground)]">
+              Ventas de Hoy
+              {d.todaySales > 0 && (
+                <span className="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">{d.todaySales}</span>
+              )}
+            </h2>
           </div>
-          {d.recentSales.length > 0 && (
+          <div className="flex items-center gap-2">
+            {d.todaySales > 0 && (
+              <Link href="/sales"
+                className="text-xs font-medium text-pink-500 hover:underline">Ver todas</Link>
+            )}
             <Link href="/sales/new"
               className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-pink-500 to-rose-500 px-4 py-2 text-xs font-medium text-white shadow-sm transition-all hover:shadow-md">
               <ShoppingCart className="h-3.5 w-3.5" />
               Nueva venta
             </Link>
-          )}
+          </div>
         </div>
-        {d.recentSales.length === 0 ? (
+        {d.todaySalesDetailed.length === 0 ? (
           <div className="flex flex-col items-center gap-3 rounded-xl bg-[var(--accent)] py-10">
             <ShoppingCart className="h-8 w-8 text-[var(--muted-foreground)]" />
-            <p className="text-sm text-[var(--muted-foreground)]">No hay ventas registradas</p>
+            <p className="text-sm text-[var(--muted-foreground)]">No hay ventas hoy</p>
             <Link href="/sales/new"
               className="rounded-xl bg-gradient-to-r from-pink-500 to-rose-500 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:shadow-md">
               Registrar venta
@@ -253,29 +267,34 @@ export default async function Home() {
           </div>
         ) : (
           <div className="divide-y divide-[var(--border)]">
-            {d.recentSales.map((s) => (
-              <div key={s.id} className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50">
-                    <ShoppingCart className="h-4 w-4 text-emerald-500" />
+            {d.todaySalesDetailed.map((s) => {
+              const saleDate = new Date(s.createdAt);
+              const saleTime = saleDate.toLocaleTimeString("es-CO", { timeZone: "America/Bogota", hour: "2-digit", minute: "2-digit", hour12: true });
+              return (
+                <Link key={s.id} href={`/sales/${s.id}`}
+                  className="flex items-center justify-between py-3 first:pt-0 last:pb-0 transition-colors hover:bg-[var(--accent)] -mx-5 px-5">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50">
+                      <Receipt className="h-4 w-4 text-emerald-500" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-[var(--foreground)]">
+                        {s.client?.name || "Cliente General"}
+                      </p>
+                      <p className="text-xs text-[var(--muted-foreground)]">
+                        {s.items.length} producto{s.items.length !== 1 ? "s" : ""} · #{String(s.id).padStart(5, "0")} · {saleTime}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-[var(--foreground)]">
-                      {s.client?.name || "Cliente General"}
-                    </p>
-                    <p className="text-xs text-[var(--muted-foreground)]">
-                      {s.items.length} producto{s.items.length !== 1 ? "s" : ""} · #{String(s.id).padStart(5, "0")}
+                  <div className="text-right">
+                    <p className="text-sm font-bold text-[var(--foreground)]">${s.total.toLocaleString()}</p>
+                    <p className="text-xs text-[var(--muted-foreground)] capitalize">
+                      {s.paymentMethod === "transferencia" ? "Transferencia" : "Efectivo"}
                     </p>
                   </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-bold text-[var(--foreground)]">${s.total.toLocaleString()}</p>
-                  <p className="text-xs text-[var(--muted-foreground)]">
-                    {new Date(s.createdAt).toLocaleDateString("es-CO", { timeZone: "America/Bogota", month: "short", day: "numeric" })}
-                  </p>
-                </div>
-              </div>
-            ))}
+                </Link>
+              );
+            })}
           </div>
         )}
       </div>
