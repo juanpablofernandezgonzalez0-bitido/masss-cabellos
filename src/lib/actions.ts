@@ -47,7 +47,7 @@ export async function createTreatmentPlan(formData: FormData) {
       appointments: {
         create: {
           clientId,
-          date: new Date(firstDate),
+          date: new Date(firstDate + "T05:00:00.000Z"),
           time: firstTime || "",
           type: "consulta",
           status: "pendiente",
@@ -199,7 +199,7 @@ export async function updateClient(id: number, formData: FormData) {
 
 export async function createAppointment(formData: FormData) {
   const clientName = formData.get("clientName") as string;
-  const date = new Date(formData.get("date") as string);
+  const date = new Date(formData.get("date") + "T05:00:00.000Z");
   const time = formData.get("time") as string;
   const type = formData.get("type") as string;
   const notes = formData.get("notes") as string;
@@ -253,7 +253,7 @@ export async function createAppointment(formData: FormData) {
 
 export async function updateAppointment(id: number, formData: FormData) {
   const clientId = parseInt(formData.get("clientId") as string);
-  const date = new Date(formData.get("date") as string);
+  const date = new Date(formData.get("date") + "T05:00:00.000Z");
   const time = formData.get("time") as string;
   const type = formData.get("type") as string;
   const status = formData.get("status") as string;

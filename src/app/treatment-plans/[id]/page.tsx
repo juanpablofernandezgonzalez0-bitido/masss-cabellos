@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { ArrowLeft, User, Calendar, DollarSign, ClipboardList, Plus, Clock, CheckCircle, Pencil } from "lucide-react";
-import { formatDate, formatDateTime, formatCurrency } from "@/lib/utils";
+import { formatDate, formatDateTime, formatCurrency, formatTime12h } from "@/lib/utils";
 import { CompleteButton } from "@/components/complete-button";
 import { PlanPayments } from "./plan-payments";
 
@@ -179,7 +179,7 @@ export default async function TreatmentPlanDetailPage({
                       {a.time && (
                         <span className="flex items-center gap-1">
                           <Clock className="h-3 w-3" />
-                          {a.time}
+                          {formatTime12h(a.time)}
                         </span>
                       )}
                     </div>

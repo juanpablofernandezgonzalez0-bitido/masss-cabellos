@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import {
   DollarSign, ShoppingCart, TrendingUp, Calendar, Users, Package, Truck, Receipt, Sun,
 } from "lucide-react";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, formatTime12h } from "@/lib/utils";
 import { DayPicker } from "./day-picker";
 import { HourlySalesChart } from "./hourly-sales-chart";
 import { TopProductsChart } from "./top-products-chart";
@@ -245,7 +245,7 @@ export default async function DaySummaryPage({
                     {a.client?.name || "Sin cliente"}
                   </p>
                   <p className="text-xs text-[var(--muted-foreground)]">
-                    {a.time ? `${a.time} · ` : ""}{a.type}
+                    {a.time ? `${formatTime12h(a.time)} · ` : ""}{a.type}
                   </p>
                 </div>
                 <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${

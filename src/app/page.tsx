@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
-import { getLocalDateBounds } from "@/lib/utils";
+import { getLocalDateBounds, formatTime12h } from "@/lib/utils";
 import { Package, Users, Calendar, ShoppingCart, AlertTriangle, TrendingUp, DollarSign, ArrowRight, Clock, Star, Receipt } from "lucide-react";
 import Link from "next/link";
 
@@ -215,7 +215,7 @@ export default async function Home() {
                       <p className="flex items-center gap-1 text-xs text-[var(--muted-foreground)]">
                         <Clock className="h-3 w-3" />
                         {new Date(a.date).toLocaleDateString("es-CO", { timeZone: "America/Bogota", weekday: "short", day: "numeric", month: "short" })}
-                        {a.time ? ` - ${a.time}` : ""}
+                        {a.time ? ` - ${formatTime12h(a.time)}` : ""}
                       </p>
                     </div>
                   </div>

@@ -2,6 +2,7 @@ import { createAppointment } from "@/lib/actions";
 import { prisma } from "@/lib/prisma";
 import { ArrowLeft, Calendar, User } from "lucide-react";
 import Link from "next/link";
+import { TimePicker } from "@/components/time-picker";
 
 export default async function NewAppointmentPage({
   searchParams,
@@ -101,7 +102,7 @@ export default async function NewAppointmentPage({
           </div>
           <div className="space-y-2">
             <label className="block text-sm font-medium text-[var(--foreground)]">Hora</label>
-            <input name="time" type="time" className="form-input" />
+            <TimePicker name="time" />
           </div>
         </div>
 

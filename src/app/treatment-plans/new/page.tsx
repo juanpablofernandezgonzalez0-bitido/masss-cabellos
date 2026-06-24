@@ -2,6 +2,7 @@ import { createTreatmentPlan } from "@/lib/actions";
 import { prisma } from "@/lib/prisma";
 import { ArrowLeft, ClipboardList, DollarSign, User, Calendar } from "lucide-react";
 import Link from "next/link";
+import { TimePicker } from "@/components/time-picker";
 
 export default async function NewTreatmentPlanPage() {
   const clients = await prisma.client.findMany({ orderBy: { name: "asc" } });
@@ -89,7 +90,7 @@ export default async function NewTreatmentPlanPage() {
             </div>
             <div className="space-y-2">
               <label className="block text-xs font-medium text-[var(--foreground)]">Hora</label>
-              <input name="firstTime" type="time" className="form-input" />
+              <TimePicker name="firstTime" />
             </div>
           </div>
         </div>

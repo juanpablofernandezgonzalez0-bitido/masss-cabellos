@@ -3,6 +3,7 @@ import { updateAppointment } from "@/lib/actions";
 import { ArrowLeft, Calendar } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { TimePicker } from "@/components/time-picker";
 
 export default async function EditAppointmentPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -46,7 +47,7 @@ export default async function EditAppointmentPage({ params }: { params: Promise<
           </div>
           <div>
             <label className="mb-2 block text-sm font-medium text-[var(--foreground)]">Hora</label>
-            <input name="time" type="time" defaultValue={appointment.time} className="form-input" />
+            <TimePicker name="time" defaultValue={appointment.time || ""} />
           </div>
         </div>
         <div className="grid gap-6 sm:grid-cols-2">

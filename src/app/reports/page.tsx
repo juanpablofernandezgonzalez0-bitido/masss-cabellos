@@ -8,7 +8,7 @@ import { MonthlySalesChart } from "./monthly-sales-chart";
 import { TopProductsChart } from "./top-products-chart";
 import { WeekdayAppointmentsChart } from "./weekday-chart";
 import { ReportsFilter } from "./reports-filter";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, formatTime12h } from "@/lib/utils";
 import type { Period, PeriodSummary, MonthlyData, TopProduct, WeekdayData, RecentSale, RecentPurchase, UpcomingAppointment } from "./types";
 
 const MONTHS = [
@@ -157,8 +157,11 @@ async function getWeekdayData(start: Date, end: Date): Promise<WeekdayData[]> {
     where: { date: { gte: start, lte: end } },
   });
   const count = Array(7).fill(0);
+  const dayIdx: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
   for (const a of appointments) {
-    count[new Date(a.date).getDay()]++;
+    const dayName = new Intl.DateTimeFormat("en-US", { timeZone: "America/Bogota", weekday: "short" }).format(a.date);
+    const idx = dayIdx[dayName] ?? -1;
+    if (idx >= 0) count[idx]++;
   }
   return ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"].map((day, i) => ({ day, citas: count[i] }));
 }
@@ -370,7 +373,7 @@ export default async function ReportsPage({
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-[var(--foreground)] truncate">{a.clientName}</p>
                     <p className="text-xs text-[var(--muted-foreground)]">
-                      {new Date(a.date).toLocaleDateString("es-CO", { timeZone: "America/Bogota" })} {a.time ? `- ${a.time}` : ""}
+                      {new Date(a.date).toLocaleDateString("es-CO", { timeZone: "America/Bogota" })} {a.time ? `- ${formatTime12h(a.time)}` : ""}
                     </p>
                   </div>
                   <span className="rounded-full bg-[var(--warning)]/10 px-2.5 py-0.5 text-xs font-medium text-[var(--warning)]">
