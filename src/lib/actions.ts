@@ -199,10 +199,13 @@ export async function updateClient(id: number, formData: FormData) {
 
 export async function createAppointment(formData: FormData) {
   const clientName = formData.get("clientName") as string;
-  const date = new Date(formData.get("date") + "T05:00:00.000Z");
-  const time = formData.get("time") as string;
-  const type = formData.get("type") as string;
-  const notes = formData.get("notes") as string;
+  const dateStr = formData.get("date") as string;
+  if (!dateStr) throw new Error("La fecha es obligatoria");
+  const date = new Date(dateStr + "T05:00:00.000Z");
+  if (isNaN(date.getTime())) throw new Error("Fecha inválida");
+  const time = formData.get("time") as string || "";
+  const type = (formData.get("type") as string) || "consulta";
+  const notes = (formData.get("notes") as string) || "";
   const treatmentPlanIdStr = formData.get("treatmentPlanId") as string;
 
   let clientId: number;

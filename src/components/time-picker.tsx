@@ -29,9 +29,11 @@ export function TimePicker({ name, defaultValue, required }: Props) {
   const [minute, setMinute] = useState(init.minute);
   const [period, setPeriod] = useState(init.period);
 
+  const hiddenValue = to24h(hour, minute, period);
+
   return (
     <div className="flex items-center gap-1">
-      <input type="hidden" name={name} value={to24h(hour, minute, period)} />
+      <input type="hidden" name={name} value={hiddenValue} readOnly />
       <select
         value={hour}
         onChange={(e) => setHour(Number(e.target.value))}
