@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/session";
 
 function parseTime(formData: FormData, prefix: string): string {
@@ -241,7 +242,7 @@ export async function createAppointment(formData: FormData) {
     clientId = client.id;
   }
 
-  const appointment = await prisma.appointment.create({
+  await prisma.appointment.create({
     data: {
       clientId,
       date,
@@ -263,6 +264,8 @@ export async function createAppointment(formData: FormData) {
 
   revalidatePath("/appointments");
   if (treatmentPlanId) revalidatePath(`/treatment-plans/${treatmentPlanId}`);
+
+  redirect("/appointments");
 }
 
 export async function updateAppointment(id: number, formData: FormData) {
