@@ -100,7 +100,7 @@ export default async function DaySummaryPage({
 
   const selectedDate = new Date(dateStr + "T00:00:00");
   const dateLabel = selectedDate.toLocaleDateString("es-CO", {
-    weekday: "long", year: "numeric", month: "long", day: "numeric",
+    timeZone: "America/Bogota", weekday: "long", year: "numeric", month: "long", day: "numeric",
   });
 
   const { summary, sales, appointments, hourlyData, topProducts } = data;
@@ -208,7 +208,7 @@ export default async function DaySummaryPage({
                   <p className="text-xs text-[var(--muted-foreground)]">
                     {s.items.length} producto{s.items.length !== 1 ? "s" : ""} ·
                     #{String(s.id).padStart(5, "0")} ·
-                    {new Date(s.createdAt).toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" })}
+                    {new Date(s.createdAt).toLocaleTimeString("es-CO", { timeZone: "America/Bogota", hour: "2-digit", minute: "2-digit", hour12: true })}
                   </p>
                 </div>
                 <span className="text-sm font-bold text-emerald-600">{formatCurrency(s.total)}</span>

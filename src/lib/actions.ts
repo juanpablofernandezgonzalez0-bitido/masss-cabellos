@@ -61,6 +61,20 @@ export async function createTreatmentPlan(formData: FormData) {
   revalidatePath("/appointments");
 }
 
+export async function updateTreatmentPlan(id: number, formData: FormData) {
+  const description = formData.get("description") as string;
+  const price = parseFloat(formData.get("price") as string) || 0;
+
+  if (!description) throw new Error("La descripción es obligatoria");
+
+  await prisma.treatmentPlan.update({
+    where: { id },
+    data: { description, price },
+  });
+  revalidatePath("/treatment-plans");
+  revalidatePath(`/treatment-plans/${id}`);
+}
+
 export async function deleteClient(id: number) {
   await prisma.client.delete({ where: { id } });
   revalidatePath("/clients");
@@ -206,9 +220,9 @@ export async function createAppointment(formData: FormData) {
     clientId = plan.clientId;
     sessionNumber = (plan.appointments.length + 1);
   } else {
-    let client = await prisma.client.findFirst({ where: { name: clientName } });
+    const client = await prisma.client.findFirst({ where: { name: clientName } });
     if (!client) {
-      client = await prisma.client.create({ data: { name: clientName } });
+      throw new Error(`Cliente "${clientName}" no encontrado. Debes registrarlo primero en la sección de clientes.`);
     }
     clientId = client.id;
   }
@@ -320,6 +334,7 @@ export async function createSale(formData: FormData) {
 
   const paid = parseFloat(formData.get("paid") as string) || 0;
   const change = paid > total ? paid - total : 0;
+  const paymentMethod = (formData.get("paymentMethod") as string) || "efectivo";
 
   const sale = await prisma.sale.create({
     data: {
@@ -327,6 +342,7 @@ export async function createSale(formData: FormData) {
       total,
       paid,
       change,
+      paymentMethod,
       items: { create: saleItems },
     },
   });

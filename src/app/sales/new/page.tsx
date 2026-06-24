@@ -405,6 +405,20 @@ export default function NewSalePage() {
           <span className="text-2xl font-bold text-[var(--foreground)]">${total.toLocaleString()}</span>
         </div>
 
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-[var(--foreground)]">Método de pago</label>
+          <div className="flex gap-3">
+            <label className="flex flex-1 items-center justify-center gap-2 rounded-xl border-2 border-[var(--border)] p-3 text-sm font-medium transition-all has-[:checked]:border-[var(--primary)] has-[:checked]:bg-[var(--primary)]/5 has-[:checked]:text-[var(--primary)]">
+              <input type="radio" name="paymentMethod" value="efectivo" defaultChecked className="sr-only" />
+              💵 Efectivo
+            </label>
+            <label className="flex flex-1 items-center justify-center gap-2 rounded-xl border-2 border-[var(--border)] p-3 text-sm font-medium transition-all has-[:checked]:border-[var(--primary)] has-[:checked]:bg-[var(--primary)]/5 has-[:checked]:text-[var(--primary)]">
+              <input type="radio" name="paymentMethod" value="transferencia" className="sr-only" />
+              🏦 Transferencia
+            </label>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label className="mb-2 block text-sm font-medium text-[var(--foreground)]">Paga con</label>

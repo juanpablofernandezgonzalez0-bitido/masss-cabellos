@@ -25,7 +25,7 @@ function getDateRange(period: Period, year: number, month: number, date?: string
     return {
       start: new Date(date + "T00:00:00"),
       end: new Date(date + "T23:59:59.999"),
-      label: new Date(date + "T00:00:00").toLocaleDateString("es-CO", { weekday: "long", year: "numeric", month: "long", day: "numeric" }),
+      label: new Date(date + "T00:00:00").toLocaleDateString("es-CO", { timeZone: "America/Bogota", weekday: "long", year: "numeric", month: "long", day: "numeric" }),
     };
   }
 

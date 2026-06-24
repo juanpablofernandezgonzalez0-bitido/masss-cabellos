@@ -119,7 +119,16 @@ export default async function SalesPage({
                     {formatDateTime(sale.createdAt)}
                   </td>
                   <td className="px-4 py-3.5 text-right">
-                    <DeleteButton id={sale.id} type="sale" />
+                    <div className="flex items-center justify-end gap-1.5">
+                      <Link
+                        href={`/sales/${sale.id}`}
+                        className="rounded-lg px-3 py-1.5 text-xs font-medium text-[var(--info)] transition-all hover:bg-[var(--info)]/10"
+                      >
+                        <Receipt className="mr-1 inline h-3.5 w-3.5" />
+                        Factura
+                      </Link>
+                      <DeleteButton id={sale.id} type="sale" />
+                    </div>
                   </td>
                 </tr>
               ))}

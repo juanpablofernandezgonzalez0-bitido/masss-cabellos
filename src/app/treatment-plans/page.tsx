@@ -2,7 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { Plus, ClipboardList, User, DollarSign, Calendar } from "lucide-react";
 import { DeleteButton } from "@/components/delete-button";
-import { formatDate, formatCurrency } from "@/lib/utils";
+import { formatDateTime, formatCurrency } from "@/lib/utils";
 import { PlansFilter } from "./plans-filter";
 
 async function getTreatmentPlans(q?: string) {
@@ -137,7 +137,7 @@ export default async function TreatmentPlansPage({
                       </span>
                     </td>
                     <td className="hidden px-4 py-3.5 text-right text-sm text-[var(--muted-foreground)] lg:table-cell">
-                      {formatDate(plan.createdAt)}
+                      {formatDateTime(plan.createdAt)}
                     </td>
                     <td className="px-4 py-3.5 text-right">
                       <div className="flex items-center justify-end gap-1.5">
@@ -146,6 +146,12 @@ export default async function TreatmentPlansPage({
                           className="rounded-lg px-3 py-1.5 text-xs font-medium text-[var(--muted-foreground)] transition-all hover:bg-[var(--primary)]/10 hover:text-[var(--primary)]"
                         >
                           Ver
+                        </Link>
+                        <Link
+                          href={`/treatment-plans/${plan.id}/edit`}
+                          className="rounded-lg px-3 py-1.5 text-xs font-medium text-[var(--muted-foreground)] transition-all hover:bg-[var(--secondary)]/10 hover:text-[var(--secondary)]"
+                        >
+                          Editar
                         </Link>
                         <DeleteButton id={plan.id} type="treatmentPlan" />
                       </div>

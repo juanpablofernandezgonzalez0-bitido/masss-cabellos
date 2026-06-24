@@ -2,7 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { Plus, Users, Phone, Mail, Calendar, ShoppingBag, SearchX } from "lucide-react";
 import { DeleteButton } from "@/components/delete-button";
-import { formatDate } from "@/lib/utils";
+import { formatDateTime } from "@/lib/utils";
 import { ClientsFilter } from "./clients-filter";
 
 async function getClients(q?: string) {
@@ -112,7 +112,7 @@ export default async function ClientsPage({
                     </div>
                   </td>
                   <td className="hidden px-4 py-3.5 text-right text-sm text-[var(--muted-foreground)] lg:table-cell">
-                    {formatDate(client.createdAt)}
+                    {formatDateTime(client.createdAt)}
                   </td>
                   <td className="px-4 py-3.5 text-right">
                     <div className="flex items-center justify-end gap-1.5">

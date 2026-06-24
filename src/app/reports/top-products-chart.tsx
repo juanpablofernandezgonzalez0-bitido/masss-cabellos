@@ -4,14 +4,13 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 
 interface Props {
   data: { name: string; quantity: number; revenue: number }[];
-  manufactured?: boolean;
 }
 
-export function TopProductsChart({ data, manufactured }: Props) {
+export function TopProductsChart({ data }: Props) {
   if (data.length === 0) {
     return (
       <div className="flex h-[280px] items-center justify-center text-sm text-[var(--muted-foreground)]">
-        {manufactured ? "No hay fabricaciones en este período" : "No hay datos de ventas aún"}
+        No hay datos de ventas aún
       </div>
     );
   }
@@ -38,7 +37,7 @@ export function TopProductsChart({ data, manufactured }: Props) {
             boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
           }}
         />
-        <Bar dataKey="quantity" name={manufactured ? "Unidades fabricadas" : "Unidades vendidas"} fill={manufactured ? "#6ee7b7" : "#f2b5a3"} radius={[0, 4, 4, 0]} />
+        <Bar dataKey="quantity" name="Unidades vendidas" fill="#f2b5a3" radius={[0, 4, 4, 0]} />
       </BarChart>
     </ResponsiveContainer>
   );

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { Plus, Truck, DollarSign, TrendingUp, CalendarDays, Receipt, FileText } from "lucide-react";
 import { DeleteButton } from "@/components/delete-button";
-import { formatDateTime, formatCurrency } from "@/lib/utils";
+import { formatDateTime, formatCurrency, getLocalDateKey, getLocalDateBounds, getLocalMonthBounds } from "@/lib/utils";
 
 async function getPurchases() {
   return prisma.purchase.findMany({
@@ -13,14 +13,11 @@ async function getPurchases() {
 export default async function PurchasesPage() {
   const purchases = await getPurchases();
 
-  const now = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const todayEnd = new Date(todayStart.getTime() + 86400000);
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+  const { start: todayStart, end: todayEnd } = getLocalDateBounds();
+  const { start: monthStart, end: monthEnd } = getLocalMonthBounds();
 
   const todayPurchases = purchases.filter(
-    (p) => p.createdAt >= todayStart && p.createdAt < todayEnd
+    (p) => p.createdAt >= todayStart && p.createdAt <= todayEnd
   );
   const monthPurchases = purchases.filter(
     (p) => p.createdAt >= monthStart && p.createdAt <= monthEnd
@@ -59,7 +56,7 @@ export default async function PurchasesPage() {
 
   const groupedByDate: Record<string, typeof purchases> = {};
   for (const p of purchases) {
-    const dateKey = p.createdAt.toISOString().split("T")[0];
+    const dateKey = getLocalDateKey(p.createdAt);
     if (!groupedByDate[dateKey]) groupedByDate[dateKey] = [];
     groupedByDate[dateKey].push(p);
   }
@@ -136,14 +133,14 @@ export default async function PurchasesPage() {
           <div className="divide-y divide-[var(--border)]">
             {Object.entries(groupedByDate).map(([dateKey, datePurchases]) => {
               const dateTotal = datePurchases.reduce((s, p) => s + p.total, 0);
-              const isToday = dateKey === todayStart.toISOString().split("T")[0];
+              const isToday = dateKey === getLocalDateKey(todayStart);
               return (
                 <div key={dateKey} className="divide-y divide-[var(--border)]/50">
                   <div className={`flex items-center justify-between px-6 py-3 ${isToday ? "bg-[var(--primary)]/5" : "bg-[var(--muted)]/50"}`}>
                     <div className="flex items-center gap-2">
                       <CalendarDays className={`h-4 w-4 ${isToday ? "text-[var(--primary)]" : "text-[var(--muted-foreground)]"}`} />
                       <span className={`text-sm font-medium ${isToday ? "text-[var(--primary)]" : "text-[var(--foreground)]"}`}>
-                        {isToday ? "Hoy" : new Date(dateKey).toLocaleDateString("es-CO", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+                        {isToday ? "Hoy" : new Date(dateKey + "T00:00:00").toLocaleDateString("es-CO", { timeZone: "America/Bogota", weekday: "long", year: "numeric", month: "long", day: "numeric" })}
                       </span>
                     </div>
                     <span className="text-sm font-bold text-[var(--foreground)]">{formatCurrency(dateTotal)}</span>

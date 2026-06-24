@@ -16,6 +16,7 @@ interface Props {
   total: number;
   paid: number;
   change: number;
+  paymentMethod: string;
   clientName: string;
   date: string;
   items: SaleItemData[];
@@ -25,7 +26,7 @@ function fmt(n: number): string {
   return "$" + Math.round(n).toLocaleString("es-CO");
 }
 
-export function PdfDownloadButton({ invoiceNum, total, paid, change, clientName, date, items }: Props) {
+export function PdfDownloadButton({ invoiceNum, total, paid, change, paymentMethod, clientName, date, items }: Props) {
   const [loading, setLoading] = useState(false);
 
   const downloadPdf = async () => {
@@ -79,6 +80,8 @@ export function PdfDownloadButton({ invoiceNum, total, paid, change, clientName,
       dash();
       y += 4;
       l("Cliente: " + clientName, 8);
+      y += 4;
+      l("Pago: " + (paymentMethod === "transferencia" ? "Transferencia" : "Efectivo"), 7);
       y += 5;
       dash();
       y += 4;
@@ -107,7 +110,7 @@ export function PdfDownloadButton({ invoiceNum, total, paid, change, clientName,
       y += 6;
 
       if (paid > 0) {
-        l("Efectivo:", 8);
+        l(paymentMethod === "transferencia" ? "Transferencia:" : "Efectivo:", 8);
         r(fmt(paid), 8);
         y += 4;
         l("Vuelto:", 8, true);

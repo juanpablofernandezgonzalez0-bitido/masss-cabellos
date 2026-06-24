@@ -37,6 +37,7 @@ export function Header({ user, onToggleSidebar }: HeaderProps) {
           <CalendarDays className="h-3.5 w-3.5 text-[var(--primary)]" />
           <span className="text-xs font-medium text-[var(--accent-foreground)]">
             {new Date().toLocaleDateString("es-CO", {
+              timeZone: "America/Bogota",
               year: "numeric",
               month: "long",
               day: "numeric",

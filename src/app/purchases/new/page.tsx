@@ -29,7 +29,7 @@ export default function NewPurchasePage() {
   };
 
   const today = new Date().toLocaleDateString("es-CO", {
-    year: "numeric", month: "long", day: "numeric",
+    timeZone: "America/Bogota", year: "numeric", month: "long", day: "numeric",
   });
 
   return (

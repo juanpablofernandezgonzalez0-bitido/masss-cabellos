@@ -4,6 +4,7 @@ import { formatCurrency } from "@/lib/utils";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { PdfDownloadButton } from "./pdf-download";
+import { PrintButton } from "./print-button";
 
 export default async function SaleInvoicePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -23,20 +24,39 @@ export default async function SaleInvoicePage({ params }: { params: Promise<{ id
   const invoiceNum = String(sale.id).padStart(5, "0");
   const date = new Date(sale.createdAt);
   const clientName = sale.client?.name ?? "Cliente General";
-  const dateStr = date.toLocaleDateString("es-CO", { year: "numeric", month: "long", day: "numeric" });
-  const timeStr = date.toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" });
+  const dateStr = date.toLocaleDateString("es-CO", { timeZone: "America/Bogota", year: "numeric", month: "long", day: "numeric" });
+  const timeStr = date.toLocaleTimeString("es-CO", { timeZone: "America/Bogota", hour: "2-digit", minute: "2-digit", hour12: true });
 
   return (
-    <div className="mx-auto max-w-sm space-y-6">
-      <div className="flex items-center justify-between">
-        <Link href="/sales" className="inline-flex items-center gap-1.5 text-sm text-[var(--muted-foreground)] transition-colors hover:text-[var(--primary)]">
-          <ArrowLeft className="h-4 w-4" /> Volver
-        </Link>
-        <PdfDownloadButton
+    <>
+      <style>{`
+        @page { size: 80mm 297mm; margin: 3mm; }
+        @media print {
+          body * { visibility: hidden; }
+          #invoice-print, #invoice-print * { visibility: visible; }
+          #invoice-print {
+            position: absolute; left: 0; top: 0;
+            width: 100%; max-width: 80mm;
+            border: none !important; border-radius: 0 !important;
+            box-shadow: none !important;
+          }
+          #invoice-print .no-print { display: none !important; }
+          .no-print { display: none !important; }
+        }
+      `}</style>
+      <div className="mx-auto max-w-sm space-y-6">
+        <div className="no-print flex items-center justify-between">
+          <Link href="/sales" className="inline-flex items-center gap-1.5 text-sm text-[var(--muted-foreground)] transition-colors hover:text-[var(--primary)]">
+            <ArrowLeft className="h-4 w-4" /> Volver
+          </Link>
+          <div className="flex items-center gap-2">
+            <PrintButton />
+            <PdfDownloadButton
           invoiceNum={invoiceNum}
           total={sale.total}
           paid={sale.paid}
           change={sale.change}
+          paymentMethod={sale.paymentMethod}
           clientName={clientName}
           date={`${dateStr} ${timeStr}`}
           items={sale.items.map((i) => ({
@@ -46,9 +66,10 @@ export default async function SaleInvoicePage({ params }: { params: Promise<{ id
             subtotal: i.subtotal,
           }))}
         />
-      </div>
+          </div>
+        </div>
 
-      <div className="overflow-hidden rounded-2xl border border-[var(--border)] bg-white shadow-[var(--shadow-sm)]">
+        <div id="invoice-print" className="overflow-hidden rounded-2xl border border-[var(--border)] bg-white shadow-[var(--shadow-sm)]">
         <div className="border-b border-[var(--border)] bg-gradient-to-r from-[#fdf8f6] to-[#fef0f0] px-4 py-4 text-center">
           <img src="/logo.png" alt="Masss Cabellos" className="mx-auto h-14 w-auto mb-1" />
           <h1 className="text-lg font-bold text-[var(--foreground)]">MASSS CABELLOS</h1>
@@ -92,10 +113,14 @@ export default async function SaleInvoicePage({ params }: { params: Promise<{ id
             <span className="text-sm font-bold text-[var(--foreground)]">TOTAL</span>
             <span className="text-lg font-bold text-[var(--foreground)]">{formatCurrency(sale.total)}</span>
           </div>
+          <div className="mt-1 flex justify-between text-sm">
+            <span className="text-[var(--muted-foreground)]">Método de pago:</span>
+            <span className="font-semibold text-[var(--foreground)]">{sale.paymentMethod === "transferencia" ? "Transferencia" : "Efectivo"}</span>
+          </div>
           {sale.paid > 0 && (
             <>
               <div className="mt-1 flex justify-between text-sm">
-                <span className="text-[var(--muted-foreground)]">Efectivo:</span>
+                <span className="text-[var(--muted-foreground)]">Paga con:</span>
                 <span className="font-semibold text-[var(--foreground)]">{formatCurrency(sale.paid)}</span>
               </div>
               <div className="flex justify-between text-sm">
@@ -110,7 +135,8 @@ export default async function SaleInvoicePage({ params }: { params: Promise<{ id
           <p className="text-xs text-[var(--muted-foreground)]">¡Gracias por tu preferencia!</p>
           <p className="text-xs text-[var(--muted-foreground)]">Masss Cabellos</p>
         </div>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

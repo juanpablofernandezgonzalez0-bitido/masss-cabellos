@@ -30,7 +30,7 @@ function getDateRange(period: Period, year: number, month: number, date?: string
     return {
       start: d,
       end: new Date(date + "T23:59:59.999"),
-      label: d.toLocaleDateString("es-CO", { weekday: "long", year: "numeric", month: "long", day: "numeric" }),
+      label: d.toLocaleDateString("es-CO", { timeZone: "America/Bogota", weekday: "long", year: "numeric", month: "long", day: "numeric" }),
     };
   }
 
@@ -163,22 +163,6 @@ async function getWeekdayData(start: Date, end: Date): Promise<WeekdayData[]> {
   return ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"].map((day, i) => ({ day, citas: count[i] }));
 }
 
-async function getManufacturedProducts(start: Date, end: Date): Promise<TopProduct[]> {
-  const records = await prisma.manufacture.findMany({
-    where: { createdAt: { gte: start, lte: end } },
-    include: { product: { select: { name: true } } },
-  });
-
-  const acc: Record<number, TopProduct> = {};
-  for (const r of records) {
-    if (!acc[r.productId]) {
-      acc[r.productId] = { name: r.product.name, quantity: 0, revenue: 0 };
-    }
-    acc[r.productId].quantity += r.quantity;
-  }
-  return Object.values(acc).sort((a, b) => b.quantity - a.quantity).slice(0, 10);
-}
-
 async function getRecentItems(start: Date, end: Date): Promise<{
   recentSales: RecentSale[];
   recentPurchases: RecentPurchase[];
@@ -272,11 +256,10 @@ export default async function ReportsPage({
   const { start, end, label } = getDateRange(period, selectedYear, selectedMonth, rawDate);
   const summary = await getSummary(start, end);
 
-  const [monthlyData, topProducts, manufacturedProducts, weekdayData, { recentSales, recentPurchases, upcomingAppointments }] =
+  const [monthlyData, topProducts, weekdayData, { recentSales, recentPurchases, upcomingAppointments }] =
     await Promise.all([
       getMonthlyData(selectedYear),
       getTopProducts(start, end),
-      getManufacturedProducts(start, end),
       getWeekdayData(start, end),
       getRecentItems(start, end),
     ]);
@@ -357,14 +340,7 @@ export default async function ReportsPage({
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="rounded-2xl border border-[var(--border)] bg-white p-5 shadow-[var(--shadow-sm)]">
-          <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold text-[var(--foreground)]">
-            <Factory className="h-4 w-4 text-[#34d399]" />
-            Productos Fabricados
-          </h2>
-          <TopProductsChart data={manufacturedProducts} manufactured />
-        </div>
+      <div className="grid gap-6 lg:grid-cols-2">
         <div className="rounded-2xl border border-[var(--border)] bg-white p-5 shadow-[var(--shadow-sm)]">
           <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold text-[var(--foreground)]">
             <Calendar className="h-4 w-4 text-[var(--secondary)]" />
@@ -394,7 +370,7 @@ export default async function ReportsPage({
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-[var(--foreground)] truncate">{a.clientName}</p>
                     <p className="text-xs text-[var(--muted-foreground)]">
-                      {new Date(a.date).toLocaleDateString("es-CO")} {a.time ? `- ${a.time}` : ""}
+                      {new Date(a.date).toLocaleDateString("es-CO", { timeZone: "America/Bogota" })} {a.time ? `- ${a.time}` : ""}
                     </p>
                   </div>
                   <span className="rounded-full bg-[var(--warning)]/10 px-2.5 py-0.5 text-xs font-medium text-[var(--warning)]">
@@ -429,7 +405,7 @@ export default async function ReportsPage({
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-[var(--foreground)] truncate">{s.clientName}</p>
                     <p className="text-xs text-[var(--muted-foreground)]">
-                      {s.itemsCount} producto{s.itemsCount !== 1 ? "s" : ""} · {new Date(s.createdAt).toLocaleDateString("es-CO")}
+                      {s.itemsCount} producto{s.itemsCount !== 1 ? "s" : ""} · {new Date(s.createdAt).toLocaleDateString("es-CO", { timeZone: "America/Bogota" })}
                     </p>
                   </div>
                   <span className="text-sm font-bold text-[var(--success)]">{formatCurrency(s.total)}</span>
@@ -459,7 +435,7 @@ export default async function ReportsPage({
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-[var(--foreground)] truncate">{p.concept}</p>
-                    <p className="text-xs text-[var(--muted-foreground)]">{new Date(p.createdAt).toLocaleDateString("es-CO")}</p>
+                    <p className="text-xs text-[var(--muted-foreground)]">{new Date(p.createdAt).toLocaleDateString("es-CO", { timeZone: "America/Bogota" })}</p>
                   </div>
                   <span className="text-sm font-bold text-[var(--primary)]">{formatCurrency(p.total)}</span>
                 </div>

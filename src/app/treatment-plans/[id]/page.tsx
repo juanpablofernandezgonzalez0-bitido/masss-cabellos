@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { ArrowLeft, User, Calendar, DollarSign, ClipboardList, Plus, Clock, CheckCircle } from "lucide-react";
-import { formatDate, formatCurrency } from "@/lib/utils";
+import { ArrowLeft, User, Calendar, DollarSign, ClipboardList, Plus, Clock, CheckCircle, Pencil } from "lucide-react";
+import { formatDate, formatDateTime, formatCurrency } from "@/lib/utils";
 import { CompleteButton } from "@/components/complete-button";
 import { PlanPayments } from "./plan-payments";
 
@@ -93,7 +93,7 @@ export default async function TreatmentPlanDetailPage({
           </div>
           <div className="rounded-xl bg-[var(--muted)] p-4 text-center">
             <p className="text-xs font-medium uppercase text-[var(--muted-foreground)]">Creado</p>
-            <p className="mt-1 text-sm font-medium text-[var(--foreground)]">{formatDate(plan.createdAt)}</p>
+            <p className="mt-1 text-sm font-medium text-[var(--foreground)]">{formatDateTime(plan.createdAt)}</p>
           </div>
         </div>
 
@@ -107,6 +107,18 @@ export default async function TreatmentPlanDetailPage({
               Programar siguiente sesión
             </Link>
           )}
+          {plan.remainingSessions === 0 && (
+            <span className="inline-flex items-center gap-2 rounded-xl border border-[var(--warning)]/30 bg-[var(--warning)]/5 px-5 py-2.5 text-sm font-semibold text-[var(--warning)]">
+              Plan completado
+            </span>
+          )}
+          <Link
+            href={`/treatment-plans/${plan.id}/edit`}
+            className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] px-5 py-2.5 text-sm font-semibold text-[var(--foreground)] transition-all hover:bg-[var(--accent)]"
+          >
+            <Pencil className="h-4 w-4" />
+            Editar Plan
+          </Link>
           {plan.price > 0 && (
             <Link
               href={`/sales/new?planId=${plan.id}`}

@@ -60,11 +60,11 @@ async function buildContext() {
 
   const lowStock = allProducts.filter((p) => p.stock < p.minStock);
 
-  const fmt = (d: Date) => d.toLocaleDateString("es-CO", { weekday: "long", day: "numeric", month: "long" });
+  const fmt = (d: Date) => d.toLocaleDateString("es-CO", { timeZone: "America/Bogota", weekday: "long", day: "numeric", month: "long" });
 
   const salesByDay = new Map<string, { count: number; total: number }>();
   for (const s of weekSales) {
-    const key = s.createdAt.toLocaleDateString("es-CO");
+    const key = s.createdAt.toLocaleDateString("es-CO", { timeZone: "America/Bogota" });
     const e = salesByDay.get(key) ?? { count: 0, total: 0 };
     e.count++; e.total += s.total;
     salesByDay.set(key, e);
@@ -145,13 +145,13 @@ TOP 5 CLIENTES POR GASTO:
 ${clientsWithSpending.slice(0, 5).map((c) => `- ${c.name}: $${c.spent.toLocaleString("es-CO")}`).join("\n")}
 
 PRÓXIMAS CITAS (7 DÍAS):
-${weekAppointments.map((a) => `- ${a.client.name} - ${a.date.toLocaleDateString("es-CO")} a las ${a.time} (${a.type})`).join("\n") || "Ninguna"}
+${weekAppointments.map((a) => `- ${a.client.name} - ${a.date.toLocaleDateString("es-CO", { timeZone: "America/Bogota" })} a las ${a.time} (${a.type})`).join("\n") || "Ninguna"}
 
 PLANES DE TRATAMIENTO ACTIVOS:
 ${activePlans.map((p) => `- ${p.client.name}: ${p.description} (${p.remainingSessions}/${p.totalSessions} sesiones, pagado $${p.paidAmount.toLocaleString("es-CO")} de $${p.price.toLocaleString("es-CO")})`).join("\n") || "Ninguno"}
 
 COMPRAS / GASTOS RECIENTES:
-${recentPurchases.map((p) => `- $${p.total.toLocaleString("es-CO")} (${p.concept}) - ${p.createdAt.toLocaleDateString("es-CO")}`).join("\n") || "Ninguna"}
+${recentPurchases.map((p) => `- $${p.total.toLocaleString("es-CO")} (${p.concept}) - ${p.createdAt.toLocaleDateString("es-CO", { timeZone: "America/Bogota" })}`).join("\n") || "Ninguna"}
 
 NÓMINA:
 - Trabajadoras: ${workers.length} (${allWorkers.map((w) => w.name).join(", ")})
@@ -162,7 +162,7 @@ LISTA COMPLETA DE PRODUCTOS:
 ${productList}
 
 ÚLTIMAS 20 VENTAS:
-${allSales.map((s) => `- $${s.total.toLocaleString("es-CO")} ${s.client?.name ? "- "+s.client.name : ""} (${s.createdAt.toLocaleDateString("es-CO")})`).join("\n")}`;
+${allSales.map((s) => `- $${s.total.toLocaleString("es-CO")} ${s.client?.name ? "- "+s.client.name : ""} (${s.createdAt.toLocaleDateString("es-CO", { timeZone: "America/Bogota" })})`).join("\n")}`;
 }
 
 export async function POST(req: Request) {

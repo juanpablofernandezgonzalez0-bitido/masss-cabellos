@@ -47,7 +47,7 @@ export default async function Home() {
   const isAdmin = user?.role === "admin";
   const d = await getDashboardData();
   const today = new Date();
-  const dateStr = today.toLocaleDateString("es-CO", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  const dateStr = today.toLocaleDateString("es-CO", { timeZone: "America/Bogota", weekday: "long", day: "numeric", month: "long", year: "numeric" });
 
   const cards = [
     { label: "Productos", value: d.productCount, icon: Package, href: "/products", color: "pink" },
@@ -210,7 +210,7 @@ export default async function Home() {
                       <p className="text-sm font-medium text-[var(--foreground)]">{a.client.name}</p>
                       <p className="flex items-center gap-1 text-xs text-[var(--muted-foreground)]">
                         <Clock className="h-3 w-3" />
-                        {new Date(a.date).toLocaleDateString("es-CO", { weekday: "short", day: "numeric", month: "short" })}
+                        {new Date(a.date).toLocaleDateString("es-CO", { timeZone: "America/Bogota", weekday: "short", day: "numeric", month: "short" })}
                         {a.time ? ` - ${a.time}` : ""}
                       </p>
                     </div>
@@ -271,7 +271,7 @@ export default async function Home() {
                 <div className="text-right">
                   <p className="text-sm font-bold text-[var(--foreground)]">${s.total.toLocaleString()}</p>
                   <p className="text-xs text-[var(--muted-foreground)]">
-                    {new Date(s.createdAt).toLocaleDateString("es-CO", { month: "short", day: "numeric" })}
+                    {new Date(s.createdAt).toLocaleDateString("es-CO", { timeZone: "America/Bogota", month: "short", day: "numeric" })}
                   </p>
                 </div>
               </div>

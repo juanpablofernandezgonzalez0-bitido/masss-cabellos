@@ -8,13 +8,14 @@ export default async function NewAppointmentPage({
 }: {
   searchParams: Promise<{ planId?: string }>;
 }) {
-  const [{ planId }, plans] = await Promise.all([
+  const [{ planId }, plans, clients] = await Promise.all([
     searchParams,
     prisma.treatmentPlan.findMany({
       where: { status: "activo", remainingSessions: { gt: 0 } },
       include: { client: true },
       orderBy: { createdAt: "desc" },
     }),
+    prisma.client.findMany({ orderBy: { name: "asc" } }),
   ]);
 
   const preselectedPlan = planId
@@ -60,12 +61,18 @@ export default async function NewAppointmentPage({
               </label>
               <input
                 name="clientName"
+                list="clients-list"
                 required
                 className="form-input"
                 placeholder="Ej: María Pérez"
               />
+              <datalist id="clients-list">
+                {clients.map((c) => (
+                  <option key={c.id} value={c.name} />
+                ))}
+              </datalist>
               <p className="text-xs text-[var(--muted-foreground)]">
-                Si el cliente no está registrado, se creará automáticamente
+                Solo clientes registrados — crea uno nuevo desde Clientes si no aparece
               </p>
             </div>
 
