@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { Plus, ShoppingCart, DollarSign, Receipt } from "lucide-react";
+import { Plus, ShoppingCart, DollarSign, Receipt, Calculator } from "lucide-react";
 import { DeleteButton } from "@/components/delete-button";
 import { formatDateTime, formatCurrency } from "@/lib/utils";
 import { SalesFilter } from "./sales-filter";
@@ -57,13 +57,22 @@ export default async function SalesPage({
             <p className="text-sm text-[var(--muted-foreground)]">Registro de ventas realizadas</p>
           </div>
         </div>
-        <Link
-          href="/sales/new"
-          className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[var(--primary)] to-[var(--primary-dark)] px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[var(--primary)]/20 transition-all hover:shadow-xl hover:shadow-[var(--primary)]/30"
-        >
-          <Plus className="h-4 w-4" />
-          Nueva Venta
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/sales/quote"
+            className="inline-flex items-center gap-2 rounded-xl border border-[var(--info)] bg-white px-4 py-2.5 text-sm font-semibold text-[var(--info)] transition-all hover:bg-[var(--info)]/5"
+          >
+            <Calculator className="h-4 w-4" />
+            Cotización
+          </Link>
+          <Link
+            href="/sales/new"
+            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[var(--primary)] to-[var(--primary-dark)] px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[var(--primary)]/20 transition-all hover:shadow-xl hover:shadow-[var(--primary)]/30"
+          >
+            <Plus className="h-4 w-4" />
+            Nueva Venta
+          </Link>
+        </div>
       </div>
 
       {/* Filters */}

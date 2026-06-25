@@ -34,7 +34,7 @@ export function PdfDownloadButton({ invoiceNum, total, paid, change, paymentMeth
     try {
       const pdf = new jsPDF("p", "mm", "a4");
       const pw = pdf.internal.pageSize.getWidth();
-      const cw = 64;
+      const cw = 170;
       const ml = (pw - cw) / 2;
       let y = 20;
 
@@ -50,10 +50,10 @@ export function PdfDownloadButton({ invoiceNum, total, paid, change, paymentMeth
       } catch { /* fallback: just skip the logo */ }
 
       if (logoBase64) {
-        const logoW = 30;
+        const logoW = 50;
         const logoH = (1050 / 1192) * logoW;
         pdf.addImage(logoBase64, "PNG", pw / 2 - logoW / 2, y, logoW, logoH);
-        y += logoH + 3;
+        y += logoH + 6;
       }
 
       const bold = (s: number) => { pdf.setFont("Helvetica", "bold"); pdf.setFontSize(s); };
@@ -64,65 +64,65 @@ export function PdfDownloadButton({ invoiceNum, total, paid, change, paymentMeth
       const dash = () => {
         let d = "";
         for (let i = 0; i < cw / 1.5; i++) d += "-";
-        norm(7);
+        norm(10);
         pdf.text(d, ml, y);
       };
-      const line = () => { pdf.setDrawColor(0); pdf.setLineWidth(0.3); pdf.line(ml, y, ml + cw, y); };
+      const line = () => { pdf.setDrawColor(0); pdf.setLineWidth(0.5); pdf.line(ml, y, ml + cw, y); };
 
-      cen("MASSS CABELLOS", 14, true);
-      y += 6;
-      cen("Estética y Bienestar", 8);
-      y += 4;
-      cen(date, 8);
-      y += 5;
-      l("Factura No. " + invoiceNum, 9, true);
-      y += 5;
+      cen("MASSS CABELLOS", 24, true);
+      y += 9;
+      cen("Estética y Bienestar", 12);
+      y += 7;
+      cen(date, 11);
+      y += 9;
+      l("Factura No. " + invoiceNum, 14, true);
+      y += 9;
       dash();
-      y += 4;
-      l("Cliente: " + clientName, 8);
-      y += 4;
-      l("Pago: " + (paymentMethod === "transferencia" ? "Transferencia" : "Efectivo"), 7);
-      y += 5;
+      y += 7;
+      l("Cliente: " + clientName, 12);
+      y += 7;
+      l("Pago: " + (paymentMethod === "transferencia" ? "Transferencia" : "Efectivo"), 10);
+      y += 9;
       dash();
-      y += 4;
-      l("Producto", 7, true);
-      r("Total", 7, true);
-      y += 4;
+      y += 7;
+      l("Producto", 11, true);
+      r("Total", 11, true);
+      y += 7;
 
       for (const item of items) {
         if (y > 270) { pdf.addPage(); y = 20; }
-        l(item.name, 8);
-        y += 3.5;
-        l(item.quantity + " x " + fmt(item.unitPrice), 7);
-        r(fmt(item.subtotal), 8);
-        y += 4;
+        l(item.name, 12);
+        y += 5;
+        l(item.quantity + " x " + fmt(item.unitPrice), 10);
+        r(fmt(item.subtotal), 12);
+        y += 6;
         pdf.setDrawColor(220);
-        pdf.setLineWidth(0.1);
+        pdf.setLineWidth(0.2);
         pdf.line(ml, y, ml + cw, y);
-        y += 2;
+        y += 3;
       }
 
-      y += 2;
-      line();
       y += 4;
-      l("TOTAL:", 11, true);
-      r(fmt(total), 11, true);
-      y += 6;
+      line();
+      y += 7;
+      l("TOTAL:", 16, true);
+      r(fmt(total), 16, true);
+      y += 10;
 
       if (paid > 0) {
-        l(paymentMethod === "transferencia" ? "Transferencia:" : "Efectivo:", 8);
-        r(fmt(paid), 8);
-        y += 4;
-        l("Vuelto:", 8, true);
-        r(fmt(change), 8, true);
-        y += 4;
+        l(paymentMethod === "transferencia" ? "Transferencia:" : "Efectivo:", 11);
+        r(fmt(paid), 11);
+        y += 6;
+        l("Vuelto:", 11, true);
+        r(fmt(change), 11, true);
+        y += 6;
       }
 
       line();
-      y += 5;
-      cen("¡Gracias por tu preferencia!", 8);
-      y += 4;
-      cen("Masss Cabellos", 7);
+      y += 8;
+      cen("¡Gracias por tu preferencia!", 12);
+      y += 6;
+      cen("Masss Cabellos", 10);
 
       pdf.save("factura-" + invoiceNum + ".pdf");
     } catch {

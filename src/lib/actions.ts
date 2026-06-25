@@ -210,15 +210,27 @@ export async function updateClient(id: number, formData: FormData) {
 }
 
 export async function createAppointment(formData: FormData) {
+  const result = await safeCreateAppointment(formData);
+  if (!result.success) throw new Error(result.error);
+  redirect("/appointments");
+}
+
+export async function safeCreateAppointment(
+  formData: FormData
+): Promise<{ success: true } | { success: false; error: string }> {
   const clientName = formData.get("clientName") as string;
   const dateStr = formData.get("date") as string;
-  if (!dateStr) throw new Error("La fecha es obligatoria");
-  const date = new Date(dateStr + "T05:00:00.000Z");
-  if (isNaN(date.getTime())) throw new Error("Fecha inválida");
-  const time = parseTime(formData, "time");
+  const timeHour = formData.get("time_hour") as string;
+  const timeMinute = formData.get("time_minute") as string;
+  const timePeriod = formData.get("time_period") as string;
   const type = (formData.get("type") as string) || "consulta";
   const notes = (formData.get("notes") as string) || "";
   const treatmentPlanIdStr = formData.get("treatmentPlanId") as string;
+
+  if (!dateStr) return { success: false, error: "La fecha es obligatoria" };
+  const date = new Date(dateStr + "T05:00:00.000Z");
+  if (isNaN(date.getTime())) return { success: false, error: `Fecha inválida: "${dateStr}"` };
+  const time = parseTime(formData, "time");
 
   let clientId: number;
   let treatmentPlanId: number | null = null;
@@ -230,14 +242,19 @@ export async function createAppointment(formData: FormData) {
       where: { id: treatmentPlanId },
       include: { appointments: true },
     });
-    if (!plan) throw new Error("Plan no encontrado");
-    if (plan.remainingSessions <= 0) throw new Error("El plan no tiene sesiones restantes");
+    if (!plan) return { success: false, error: "Plan no encontrado" };
+    if (plan.remainingSessions <= 0)
+      return { success: false, error: "El plan no tiene sesiones restantes" };
     clientId = plan.clientId;
-    sessionNumber = (plan.appointments.length + 1);
+    sessionNumber = plan.appointments.length + 1;
   } else {
+    if (!clientName) return { success: false, error: "Debes escribir el nombre del cliente" };
     const client = await prisma.client.findFirst({ where: { name: clientName } });
     if (!client) {
-      throw new Error(`Cliente "${clientName}" no encontrado. Debes registrarlo primero en la sección de clientes.`);
+      return {
+        success: false,
+        error: `Cliente "${clientName}" no encontrado. Regístralo primero en Clientes.`,
+      };
     }
     clientId = client.id;
   }
@@ -246,7 +263,7 @@ export async function createAppointment(formData: FormData) {
     data: {
       clientId,
       date,
-      time,
+      time: time || "",
       type,
       notes,
       status: "pendiente",
@@ -265,7 +282,7 @@ export async function createAppointment(formData: FormData) {
   revalidatePath("/appointments");
   if (treatmentPlanId) revalidatePath(`/treatment-plans/${treatmentPlanId}`);
 
-  redirect("/appointments");
+  return { success: true };
 }
 
 export async function updateAppointment(id: number, formData: FormData) {
@@ -334,9 +351,7 @@ export async function createSale(formData: FormData) {
   for (const item of rawItems) {
     if (item.type === "product") {
       const product = await prisma.product.findUnique({ where: { id: item.productId } });
-      if (!product || product.stock < item.quantity) {
-        throw new Error(`Stock insuficiente para ${product?.name || "producto"}`);
-      }
+      if (!product) throw new Error(`Producto con id ${item.productId} no encontrado`);
       const unitPrice = product.price;
       const subtotal = unitPrice * item.quantity;
       total += subtotal;

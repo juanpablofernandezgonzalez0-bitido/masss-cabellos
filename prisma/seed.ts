@@ -19,10 +19,10 @@ async function main() {
   });
 
   await prisma.user.upsert({
-    where: { username: "trabajador1" },
+    where: { username: "masss1" },
     update: {},
     create: {
-      username: "trabajador1",
+      username: "masss1",
       password: hashedWorker,
       name: "Trabajador 1",
       role: "worker",
@@ -30,8 +30,8 @@ async function main() {
   });
 
   console.log("Usuarios creados exitosamente:");
-  console.log("  Admin:      masss / admin123");
-  console.log("  Trabajador: trabajador1 / trabajo123");
+  console.log("  Admin:  masss / admin123");
+  console.log("  Trabajador: masss1 / trabajo123");
 }
 
 main()

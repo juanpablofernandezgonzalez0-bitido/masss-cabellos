@@ -51,11 +51,17 @@ async function getDayData(dateStr: string) {
   const hourlyMap: Record<number, number> = {};
   for (let i = 0; i < 24; i++) hourlyMap[i] = 0;
   for (const sale of sales) {
-    const hour = new Date(sale.createdAt).getHours();
+    const hour = parseInt(new Date(sale.createdAt).toLocaleString("en-US", { timeZone: "America/Bogota", hour: "numeric", hour12: false }));
     hourlyMap[hour] += sale.total;
   }
+  const toHour12 = (h: number) => {
+    if (h === 0) return "12 AM";
+    if (h < 12) return `${h} AM`;
+    if (h === 12) return "12 PM";
+    return `${h - 12} PM`;
+  };
   const hourlyData = Object.entries(hourlyMap).map(([hour, total]) => ({
-    hour: `${hour.padStart(2, "0")}:00`,
+    hour: toHour12(parseInt(hour)),
     ingresos: total,
   }));
 

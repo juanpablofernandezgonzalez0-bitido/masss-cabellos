@@ -1,12 +1,11 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { createSale } from "@/lib/actions";
-import { ArrowLeft, Plus, Trash2, ShoppingCart, User, FileText, Search } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, ShoppingCart, FileText, Search, Calculator, Download } from "lucide-react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { jsPDF } from "jspdf";
 
-interface ProductOption {
+interface Product {
   id: number;
   name: string;
   price: number;
@@ -14,12 +13,7 @@ interface ProductOption {
   image?: string;
 }
 
-interface ClientOption {
-  id: number;
-  name: string;
-}
-
-interface SaleItem {
+interface QuoteItem {
   type: "product" | "manual";
   productId: string;
   quantity: string;
@@ -28,86 +22,26 @@ interface SaleItem {
   customPrice: string;
 }
 
-export default function NewSalePage() {
-  const searchParams = useSearchParams();
-  const planId = searchParams.get("planId");
-  const appointmentId = searchParams.get("appointmentId");
-
-  const [items, setItems] = useState<SaleItem[]>(() => {
-    if (planId) {
-      return [];
-    }
-    return [{ type: "product", productId: "", quantity: "1", customName: "", customDescription: "", customPrice: "" }];
-  });
-  const [products, setProducts] = useState<ProductOption[]>([]);
-  const [filteredProducts, setFilteredProducts] = useState<ProductOption[]>([]);
-  const [clients, setClients] = useState<ClientOption[]>([]);
-  const [preselectedClientId, setPreselectedClientId] = useState("");
-  const [clientName, setClientName] = useState("");
-  const [planDescription, setPlanDescription] = useState("");
-  const [planPrice, setPlanPrice] = useState(0);
-  const [planTotalSessions, setPlanTotalSessions] = useState(0);
-  const [appointmentInfo, setAppointmentInfo] = useState("");
+export default function QuotePage() {
+  const [items, setItems] = useState<QuoteItem[]>([
+    { type: "product", productId: "", quantity: "1", customName: "", customDescription: "", customPrice: "" },
+  ]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [paid, setPaid] = useState("");
   const [productSearch, setProductSearch] = useState("");
   const [showProductPicker, setShowProductPicker] = useState<number | null>(null);
-  const formRef = useRef<HTMLFormElement>(null);
-  const planLoaded = useRef(false);
   const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    Promise.all([
-      fetch("/api/products").then((r) => r.json()),
-      fetch("/api/clients").then((r) => r.json()),
-      planId ? fetch(`/api/treatment-plans?id=${planId}`).then((r) => r.json()) : Promise.resolve(null),
-      appointmentId ? fetch(`/api/appointments/${appointmentId}`).then((r) => r.json()) : Promise.resolve(null),
-    ]).then(([productsData, clientsData, planData, appointmentData]) => {
-      setProducts(productsData);
-      setFilteredProducts(productsData);
-      setClients(clientsData);
-
-      if (planData && !planLoaded.current) {
-        planLoaded.current = true;
-        setPreselectedClientId(String(planData.clientId));
-        const planClient = clientsData.find((c: ClientOption) => c.id === planData.clientId);
-        if (planClient) setClientName(planClient.name);
-        setPlanDescription(planData.description);
-        setPlanPrice(planData.price);
-        setPlanTotalSessions(planData.totalSessions);
-        setItems([{
-          type: "manual",
-          productId: "",
-          quantity: "1",
-          customName: `Plan: ${planData.description}`,
-          customDescription: `${planData.totalSessions} sesiones`,
-          customPrice: String(planData.price),
-        }]);
-      }
-
-      if (appointmentData && appointmentData.clientId) {
-        setPreselectedClientId(String(appointmentData.clientId));
-        const aptClient = clientsData.find((c: ClientOption) => c.id === appointmentData.clientId);
-        if (aptClient) setClientName(aptClient.name);
-        const service = appointmentData.type || "servicio";
-        const serviceLabel = service.charAt(0).toUpperCase() + service.slice(1);
-        setAppointmentInfo(`Cita: ${serviceLabel}`);
-        if (!planId) {
-          setItems([{
-            type: "manual",
-            productId: "",
-            quantity: "1",
-            customName: serviceLabel,
-            customDescription: appointmentData.notes || "",
-            customPrice: "",
-          }]);
-        }
-      }
-
-      setLoading(false);
-    });
-  }, [planId, appointmentId]);
+    fetch("/api/products")
+      .then((r) => r.json())
+      .then((data) => {
+        setProducts(data);
+        setFilteredProducts(data);
+        setLoading(false);
+      });
+  }, []);
 
   useEffect(() => {
     if (productSearch) {
@@ -125,8 +59,7 @@ export default function NewSalePage() {
   }, [showProductPicker]);
 
   const addItem = () => {
-    const newItem: SaleItem = { type: "product", productId: "", quantity: "1", customName: "", customDescription: "", customPrice: "" };
-    setItems([...items, newItem]);
+    setItems([...items, { type: "product", productId: "", quantity: "1", customName: "", customDescription: "", customPrice: "" }]);
     setShowProductPicker(items.length);
   };
 
@@ -140,13 +73,13 @@ export default function NewSalePage() {
     }
   };
 
-  const updateItem = (index: number, field: keyof SaleItem, value: string) => {
+  const updateItem = (index: number, field: keyof QuoteItem, value: string) => {
     const newItems = [...items];
     (newItems[index] as any)[field] = value;
     setItems(newItems);
   };
 
-  const selectProduct = (index: number, product: ProductOption) => {
+  const selectProduct = (index: number, product: Product) => {
     updateItem(index, "productId", String(product.id));
     setShowProductPicker(null);
     setProductSearch("");
@@ -162,36 +95,102 @@ export default function NewSalePage() {
     return sum + (parseFloat(item.customPrice) || 0) * (parseInt(item.quantity) || 1);
   }, 0);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setSubmitting(true);
-
-    const formData = new FormData();
-    const clientInput = formRef.current?.querySelector<HTMLInputElement>('[name="clientName"]');
-    formData.set("clientName", clientInput?.value || "");
-    if (preselectedClientId) formData.set("clientId", preselectedClientId);
-    if (appointmentId) formData.set("appointmentId", appointmentId);
-
-    const payload = items.filter((item) => {
-      if (item.type === "product") return !!item.productId && !isNaN(parseInt(item.productId));
-      return true;
-    }).map((item) => {
-      if (item.type === "product") {
-        return { type: "product" as const, productId: parseInt(item.productId), quantity: parseInt(item.quantity) || 1 };
-      }
-      return { type: "manual" as const, customName: item.customName, customDescription: item.customDescription, customPrice: parseFloat(item.customPrice) || 0, quantity: parseInt(item.quantity) || 1 };
-    });
-    formData.set("items", JSON.stringify(payload));
-    formData.set("paid", paid);
-
-    try {
-      const saleId = await createSale(formData);
-      window.location.href = `/sales/${saleId}`;
-    } catch (e) {
-      alert(e instanceof Error ? e.message : "Error al registrar la venta");
-      setSubmitting(false);
-    }
+  const resetQuote = () => {
+    setItems([{ type: "product", productId: "", quantity: "1", customName: "", customDescription: "", customPrice: "" }]);
+    setShowProductPicker(null);
+    setProductSearch("");
   };
+
+  const downloadPdf = async () => {
+    const pdf = new jsPDF("p", "mm", "a4");
+    const pw = pdf.internal.pageSize.getWidth();
+    const cw = 170;
+    const ml = (pw - cw) / 2;
+    let y = 20;
+
+    let logoBase64 = "";
+    try {
+      const logoRes = await fetch("/logo.png");
+      const logoBlob = await logoRes.blob();
+      logoBase64 = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.readAsDataURL(logoBlob);
+      });
+    } catch {}
+
+    if (logoBase64) {
+      const logoW = 40;
+      const logoH = (1050 / 1192) * logoW;
+      pdf.addImage(logoBase64, "PNG", pw / 2 - logoW / 2, y, logoW, logoH);
+      y += logoH + 5;
+    }
+
+    const bold = (s: number) => { pdf.setFont("Helvetica", "bold"); pdf.setFontSize(s); };
+    const norm = (s: number) => { pdf.setFont("Helvetica", "normal"); pdf.setFontSize(s); };
+    const cen = (t: string, s: number, b = false) => { b ? bold(s) : norm(s); pdf.text(t, pw / 2, y, { align: "center" }); };
+    const l = (t: string, s: number, b = false) => { b ? bold(s) : norm(s); pdf.text(t, ml, y); };
+    const r = (t: string, s: number, b = false) => { b ? bold(s) : norm(s); pdf.text(t, ml + cw, y, { align: "right" }); };
+    const line = () => { pdf.setDrawColor(0); pdf.setLineWidth(0.5); pdf.line(ml, y, ml + cw, y); };
+
+    cen("MASSS CABELLOS", 22, true);
+    y += 8;
+    cen("Estética y Bienestar", 11);
+    y += 6;
+    cen(new Date().toLocaleDateString("es-CO", { timeZone: "America/Bogota", year: "numeric", month: "long", day: "numeric" }), 10);
+    y += 10;
+    cen("COTIZACIÓN", 18, true);
+    y += 10;
+    line();
+    y += 7;
+    l("Producto", 11, true);
+    r("Total", 11, true);
+    y += 7;
+
+    for (const item of items) {
+      if (y > 270) { pdf.addPage(); y = 20; }
+      const name = item.type === "product"
+        ? getProduct(item.productId)?.name || "(sin seleccionar)"
+        : item.customDescription || "(item manual)";
+      const qty = parseInt(item.quantity) || 1;
+      const unitPrice = item.type === "product"
+        ? getProduct(item.productId)?.price || 0
+        : parseFloat(item.customPrice) || 0;
+      const subtotal = unitPrice * qty;
+
+      l(name, 11);
+      y += 5;
+      l(`${qty} x $${Math.round(unitPrice).toLocaleString("es-CO")}`, 9);
+      r(`$${Math.round(subtotal).toLocaleString("es-CO")}`, 11);
+      y += 5;
+      pdf.setDrawColor(220);
+      pdf.setLineWidth(0.2);
+      pdf.line(ml, y, ml + cw, y);
+      y += 3;
+    }
+
+    y += 4;
+    line();
+    y += 7;
+    l("TOTAL:", 16, true);
+    r(`$${Math.round(total).toLocaleString("es-CO")}`, 16, true);
+    y += 12;
+    line();
+    y += 7;
+    cen("¡Gracias por tu preferencia!", 11);
+    y += 5;
+    cen("Masss Cabellos", 9);
+
+    pdf.save("cotizacion.pdf");
+  };
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[300px] items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--primary)] border-t-transparent" />
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -199,63 +198,16 @@ export default function NewSalePage() {
         <ArrowLeft className="h-4 w-4" /> Volver a ventas
       </Link>
       <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[var(--success)]/10 to-[var(--success)]/20">
-          <ShoppingCart className="h-5 w-5 text-[var(--success)]" />
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[var(--info)]/10 to-[var(--info)]/20">
+          <Calculator className="h-5 w-5 text-[var(--info)]" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-[var(--foreground)]">Nueva Venta</h1>
-          <p className="text-sm text-[var(--muted-foreground)]">Registra una venta de productos</p>
+          <h1 className="text-2xl font-bold text-[var(--foreground)]">Cotización</h1>
+          <p className="text-sm text-[var(--muted-foreground)]">Calcula el costo de una venta sin registrarla</p>
         </div>
       </div>
 
-      <form ref={formRef} onSubmit={handleSubmit} className="space-y-6 rounded-2xl border border-[var(--border)] bg-white p-8 shadow-[var(--shadow-sm)]">
-        <div>
-          <label className="mb-2 flex items-center gap-2 text-sm font-medium text-[var(--foreground)]">
-            <User className="h-4 w-4 text-[var(--muted-foreground)]" />
-            Cliente (opcional)
-          </label>
-          <input
-            name="clientName"
-            list="clients-list"
-            value={clientName}
-            onChange={(e) => {
-              setClientName(e.target.value);
-              setPreselectedClientId("");
-            }}
-            placeholder="Cliente General (o escribe un nombre nuevo)"
-            className="form-input"
-          />
-          <datalist id="clients-list">
-            {clients.map((c) => (
-              <option key={c.id} value={c.name} />
-            ))}
-          </datalist>
-          {planId && (
-            <p className="mt-1 text-xs text-[var(--primary)]">Vinculado al plan de tratamiento</p>
-          )}
-          {appointmentId && (
-            <p className="mt-1 text-xs text-[var(--primary)]">Vinculado a una cita</p>
-          )}
-        </div>
-
-        {appointmentInfo && (
-          <div className="rounded-xl border border-[var(--secondary)]/20 bg-[var(--secondary)]/5 p-4">
-            <p className="text-sm font-medium text-[var(--secondary)]">{appointmentInfo}</p>
-          </div>
-        )}
-
-        {planDescription && (
-          <div className="rounded-xl border border-[var(--primary)]/20 bg-[var(--primary)]/5 p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-[var(--primary)]">Plan: {planDescription}</p>
-                <p className="mt-0.5 text-xs text-[var(--muted-foreground)]">{planTotalSessions} sesiones — ${planPrice.toLocaleString()}</p>
-              </div>
-
-            </div>
-          </div>
-        )}
-
+      <div className="space-y-6 rounded-2xl border border-[var(--border)] bg-white p-8 shadow-[var(--shadow-sm)]">
         <div>
           <div className="mb-4 flex items-center justify-between">
             <label className="text-sm font-medium text-[var(--foreground)]">Productos</label>
@@ -349,7 +301,6 @@ export default function NewSalePage() {
                           placeholder="Descripción"
                           value={item.customDescription}
                           onChange={(e) => updateItem(index, "customDescription", e.target.value)}
-                          required
                           className="rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm text-[var(--foreground)] outline-none transition-all focus:border-[var(--primary)] focus:ring-3 focus:ring-[var(--primary)]/15 sm:flex-1"
                         />
                         <input
@@ -358,7 +309,6 @@ export default function NewSalePage() {
                           placeholder="Precio"
                           value={item.customPrice}
                           onChange={(e) => updateItem(index, "customPrice", e.target.value.replace(/[^0-9]/g, ""))}
-                          required
                           className="rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-center text-sm text-[var(--foreground)] outline-none transition-all focus:border-[var(--primary)] focus:ring-3 focus:ring-[var(--primary)]/15 sm:w-32"
                         />
                       </div>
@@ -369,7 +319,6 @@ export default function NewSalePage() {
                       <input
                         type="number"
                         min="1"
-                        max={item.type === "product" ? product?.stock || 999 : 9999}
                         value={item.quantity}
                         onChange={(e) => updateItem(index, "quantity", e.target.value)}
                         className="form-input text-center"
@@ -396,62 +345,27 @@ export default function NewSalePage() {
           </div>
         </div>
 
-        <div className="flex items-center justify-between rounded-xl bg-gradient-to-r from-[var(--muted)] to-[var(--accent)] px-5 py-4">
+        <div className="flex items-center justify-between rounded-xl bg-gradient-to-r from-[var(--info)]/10 to-[var(--info)]/20 px-5 py-4">
           <div className="flex items-center gap-2">
-            <ShoppingCart className="h-5 w-5 text-[var(--primary)]" />
-            <span className="text-sm font-medium text-[var(--muted-foreground)]">Total de la venta</span>
+            <Calculator className="h-5 w-5 text-[var(--info)]" />
+            <span className="text-sm font-medium text-[var(--foreground)]">Total cotizado</span>
           </div>
           <span className="text-2xl font-bold text-[var(--foreground)]">${total.toLocaleString()}</span>
         </div>
 
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-[var(--foreground)]">Método de pago</label>
-          <div className="flex gap-3">
-            <label className="flex flex-1 items-center justify-center gap-2 rounded-xl border-2 border-[var(--border)] p-3 text-sm font-medium transition-all has-[:checked]:border-[var(--primary)] has-[:checked]:bg-[var(--primary)]/5 has-[:checked]:text-[var(--primary)]">
-              <input type="radio" name="paymentMethod" value="efectivo" defaultChecked className="sr-only" />
-              💵 Efectivo
-            </label>
-            <label className="flex flex-1 items-center justify-center gap-2 rounded-xl border-2 border-[var(--border)] p-3 text-sm font-medium transition-all has-[:checked]:border-[var(--primary)] has-[:checked]:bg-[var(--primary)]/5 has-[:checked]:text-[var(--primary)]">
-              <input type="radio" name="paymentMethod" value="transferencia" className="sr-only" />
-              🏦 Transferencia
-            </label>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label className="mb-2 block text-sm font-medium text-[var(--foreground)]">Paga con</label>
-            <input
-              type="text"
-              inputMode="numeric"
-              placeholder="$0"
-              value={paid}
-              onChange={(e) => setPaid(e.target.value.replace(/[^0-9]/g, ""))}
-              className="form-input text-lg font-semibold"
-            />
-          </div>
-          <div>
-            <label className="mb-2 block text-sm font-medium text-[var(--foreground)]">Vuelto</label>
-            <div className="flex h-[42px] items-center rounded-xl border-2 border-[var(--success)] bg-[var(--success-light)] px-4 text-lg font-bold text-[var(--success)]">
-              ${(Math.max(0, (parseFloat(paid) || 0) - total)).toLocaleString()}
-            </div>
-          </div>
-        </div>
-
         <div className="flex items-center justify-end gap-3 border-t border-[var(--border)] pt-6">
-          <Link href="/sales" className="btn-secondary">Cancelar</Link>
-          <button type="submit" disabled={submitting || loading} className="btn-primary">
-            {submitting ? (
-              <span className="flex items-center gap-2">
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                Registrando...
-              </span>
-            ) : (
-              "Registrar Venta"
-            )}
+          <button type="button" onClick={resetQuote} className="btn-secondary">
+            Limpiar
           </button>
+          <button type="button" onClick={downloadPdf} className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[var(--info)] to-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[var(--info)]/20 transition-all hover:shadow-xl">
+            <Download className="h-4 w-4" />
+            Descargar PDF
+          </button>
+          <Link href="/sales/new" className="btn-primary">
+            Ir a Nueva Venta
+          </Link>
         </div>
-      </form>
+      </div>
     </div>
   );
 }
