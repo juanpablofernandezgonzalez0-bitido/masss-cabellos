@@ -15,8 +15,8 @@ async function getSales(searchParams: SearchParams) {
   const AND: Record<string, unknown>[] = [];
 
   if (searchParams.date && /^\d{4}-\d{2}-\d{2}$/.test(searchParams.date)) {
-    const start = new Date(searchParams.date + "T00:00:00");
-    const end = new Date(searchParams.date + "T23:59:59.999");
+    const start = new Date(searchParams.date + "T00:00:00-05:00");
+    const end = new Date(searchParams.date + "T23:59:59.999-05:00");
     AND.push({ createdAt: { gte: start, lte: end } });
   }
 

@@ -28,17 +28,17 @@ function getDateRange(period: Period, year: number, month: number, date?: string
 
   if (period === "range" && dateFrom && dateTo) {
     return {
-      start: new Date(dateFrom + "T00:00:00"),
-      end: new Date(dateTo + "T23:59:59.999"),
-      label: `${new Date(dateFrom + "T00:00:00").toLocaleDateString("es-CO", { timeZone: "America/Bogota", day: "numeric", month: "long" })} - ${new Date(dateTo + "T00:00:00").toLocaleDateString("es-CO", { timeZone: "America/Bogota", day: "numeric", month: "long", year: "numeric" })}`,
+      start: new Date(dateFrom + "T00:00:00-05:00"),
+      end: new Date(dateTo + "T23:59:59.999-05:00"),
+      label: `${new Date(dateFrom + "T00:00:00-05:00").toLocaleDateString("es-CO", { timeZone: "America/Bogota", day: "numeric", month: "long" })} - ${new Date(dateTo + "T00:00:00-05:00").toLocaleDateString("es-CO", { timeZone: "America/Bogota", day: "numeric", month: "long", year: "numeric" })}`,
     };
   }
 
   if (period === "today" && date) {
-    const d = new Date(date + "T00:00:00");
+    const d = new Date(date + "T00:00:00-05:00");
     return {
       start: d,
-      end: new Date(date + "T23:59:59.999"),
+      end: new Date(date + "T23:59:59.999-05:00"),
       label: d.toLocaleDateString("es-CO", { timeZone: "America/Bogota", weekday: "long", year: "numeric", month: "long", day: "numeric" }),
     };
   }

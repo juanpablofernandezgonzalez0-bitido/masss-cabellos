@@ -23,9 +23,9 @@ function detectPeriod(month: number, date: string | undefined): Period {
 function getDateRange(period: Period, year: number, month: number, date?: string) {
   if (period === "today" && date) {
     return {
-      start: new Date(date + "T00:00:00"),
-      end: new Date(date + "T23:59:59.999"),
-      label: new Date(date + "T00:00:00").toLocaleDateString("es-CO", { timeZone: "America/Bogota", weekday: "long", year: "numeric", month: "long", day: "numeric" }),
+      start: new Date(date + "T00:00:00-05:00"),
+      end: new Date(date + "T23:59:59.999-05:00"),
+      label: new Date(date + "T00:00:00-05:00").toLocaleDateString("es-CO", { timeZone: "America/Bogota", weekday: "long", year: "numeric", month: "long", day: "numeric" }),
     };
   }
 
