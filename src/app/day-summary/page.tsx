@@ -21,8 +21,8 @@ interface DaySummary {
 }
 
 async function getDayData(dateStr: string) {
-  const start = new Date(dateStr + "T00:00:00");
-  const end = new Date(dateStr + "T23:59:59.999");
+  const start = new Date(dateStr + "T00:00:00-05:00");
+  const end = new Date(dateStr + "T23:59:59.999-05:00");
 
   const [sales, purchases, appointments, newClients] = await Promise.all([
     prisma.sale.findMany({
@@ -104,7 +104,7 @@ export default async function DaySummaryPage({
 
   const data = await getDayData(dateStr);
 
-  const selectedDate = new Date(dateStr + "T00:00:00");
+  const selectedDate = new Date(dateStr + "T00:00:00-05:00");
   const dateLabel = selectedDate.toLocaleDateString("es-CO", {
     timeZone: "America/Bogota", weekday: "long", year: "numeric", month: "long", day: "numeric",
   });

@@ -16,14 +16,23 @@ const MONTHS = [
   "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
 ];
 
-function detectPeriod(year: number, month: number, date: string | undefined): Period {
+function detectPeriod(year: number, month: number, date: string | undefined, dateFrom?: string, dateTo?: string): Period {
+  if (dateFrom && dateTo) return "range";
   if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) return "today";
   if (month > 0) return "month";
   return "year";
 }
 
-function getDateRange(period: Period, year: number, month: number, date?: string) {
+function getDateRange(period: Period, year: number, month: number, date?: string, dateFrom?: string, dateTo?: string) {
   const now = new Date();
+
+  if (period === "range" && dateFrom && dateTo) {
+    return {
+      start: new Date(dateFrom + "T00:00:00"),
+      end: new Date(dateTo + "T23:59:59.999"),
+      label: `${new Date(dateFrom + "T00:00:00").toLocaleDateString("es-CO", { timeZone: "America/Bogota", day: "numeric", month: "long" })} - ${new Date(dateTo + "T00:00:00").toLocaleDateString("es-CO", { timeZone: "America/Bogota", day: "numeric", month: "long", year: "numeric" })}`,
+    };
+  }
 
   if (period === "today" && date) {
     const d = new Date(date + "T00:00:00");
@@ -246,17 +255,17 @@ function getMetricCards(summary: PeriodSummary) {
 export default async function ReportsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ year?: string; month?: string; date?: string }>;
+  searchParams: Promise<{ year?: string; month?: string; date?: string; dateFrom?: string; dateTo?: string }>;
 }) {
-  const { year: rawYear, month: rawMonth, date: rawDate } = await searchParams;
+  const { year: rawYear, month: rawMonth, date: rawDate, dateFrom: rawDateFrom, dateTo: rawDateTo } = await searchParams;
 
   const now = new Date();
   const currentYear = now.getFullYear();
   const selectedYear = rawYear ? parseInt(rawYear) : currentYear;
   const selectedMonth = rawMonth ? parseInt(rawMonth) : 0;
 
-  const period = detectPeriod(selectedYear, selectedMonth, rawDate);
-  const { start, end, label } = getDateRange(period, selectedYear, selectedMonth, rawDate);
+  const period = detectPeriod(selectedYear, selectedMonth, rawDate, rawDateFrom, rawDateTo);
+  const { start, end, label } = getDateRange(period, selectedYear, selectedMonth, rawDate, rawDateFrom, rawDateTo);
   const summary = await getSummary(start, end);
 
   const [monthlyData, topProducts, weekdayData, { recentSales, recentPurchases, upcomingAppointments }] =
@@ -288,6 +297,8 @@ export default async function ReportsPage({
         selectedYear={selectedYear}
         selectedMonth={selectedMonth}
         selectedDate={rawDate || ""}
+        selectedDateFrom={rawDateFrom || ""}
+        selectedDateTo={rawDateTo || ""}
         currentYear={currentYear}
       />
 

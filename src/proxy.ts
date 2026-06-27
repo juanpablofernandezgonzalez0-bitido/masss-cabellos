@@ -14,6 +14,7 @@ const adminOnlyPaths = [
   "/api/payroll",
   "/api/upload",
   "/inventory",
+  "/debts",
 ];
 
 export async function proxy(request: NextRequest) {

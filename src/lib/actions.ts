@@ -473,3 +473,80 @@ export async function createPurchase(formData: FormData) {
 
   revalidatePath("/purchases");
 }
+
+export async function deleteDebt(id: number) {
+  await prisma.debt.delete({ where: { id } });
+  revalidatePath("/debts");
+}
+
+export async function createDebt(formData: FormData) {
+  const clientName = formData.get("clientName") as string;
+  const description = formData.get("description") as string;
+  const total = parseFloat(formData.get("total") as string) || 0;
+
+  if (!clientName) throw new Error("El nombre del cliente es obligatorio");
+
+  let client = await prisma.client.findFirst({ where: { name: clientName } });
+  if (!client) {
+    client = await prisma.client.create({ data: { name: clientName } });
+  }
+
+  await prisma.debt.create({
+    data: {
+      clientId: client.id,
+      clientName,
+      description,
+      total,
+      status: "pendiente",
+    },
+  });
+
+  revalidatePath("/debts");
+}
+
+export async function payDebt(id: number, formData: FormData) {
+  const amount = parseFloat(formData.get("amount") as string) || 0;
+
+  if (amount <= 0) throw new Error("El monto debe ser mayor a 0");
+
+  const debt = await prisma.debt.findUnique({ where: { id } });
+  if (!debt) throw new Error("Deuda no encontrada");
+
+  const newPaid = debt.paidAmount + amount;
+  const newStatus = newPaid >= debt.total ? "pagada" : "parcial";
+
+  await prisma.$transaction([
+    prisma.debtPayment.create({
+      data: { debtId: id, amount },
+    }),
+    prisma.debt.update({
+      where: { id },
+      data: { paidAmount: newPaid, status: newStatus },
+    }),
+  ]);
+
+  revalidatePath("/debts");
+  revalidatePath(`/debts/${id}`);
+}
+
+export async function deleteDebtPayment(id: number) {
+  const payment = await prisma.debtPayment.findUnique({ where: { id } });
+  if (!payment) throw new Error("Pago no encontrado");
+
+  const debt = await prisma.debt.findUnique({ where: { id: payment.debtId } });
+  if (!debt) throw new Error("Deuda no encontrada");
+
+  const newPaid = debt.paidAmount - payment.amount;
+  const newStatus = newPaid <= 0 ? "pendiente" : "parcial";
+
+  await prisma.$transaction([
+    prisma.debtPayment.delete({ where: { id } }),
+    prisma.debt.update({
+      where: { id: payment.debtId },
+      data: { paidAmount: newPaid, status: newStatus },
+    }),
+  ]);
+
+  revalidatePath("/debts");
+  revalidatePath(`/debts/${payment.debtId}`);
+}

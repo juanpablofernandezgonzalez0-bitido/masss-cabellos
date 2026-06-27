@@ -1,4 +1,4 @@
-export type Period = "today" | "week" | "month" | "year";
+export type Period = "today" | "week" | "month" | "year" | "range";
 
 export interface PeriodSummary {
   revenue: number;

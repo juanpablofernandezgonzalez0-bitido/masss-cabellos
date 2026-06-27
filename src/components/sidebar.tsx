@@ -17,6 +17,7 @@ import {
   DollarSign,
   StickyNote,
   FlaskConical,
+  CreditCard,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -38,6 +39,7 @@ export function Sidebar({ role, isOpen, onClose }: SidebarProps) {
     { href: "/treatment-plans", label: "Planes", icon: ClipboardList },
     { href: "/sales", label: "Ventas", icon: ShoppingCart },
     ...(isAdmin ? [{ href: "/purchases", label: "Compras", icon: Truck }] : []),
+    ...(isAdmin ? [{ href: "/debts", label: "Deudas", icon: CreditCard }] : []),
     ...(isAdmin ? [{ href: "/reports", label: "Indicadores", icon: BarChart3 }] : []),
     ...(isAdmin ? [{ href: "/day-summary", label: "Resumen del Día", icon: Sun }] : []),
     ...(isAdmin ? [{ href: "/payroll", label: "Nómina", icon: DollarSign }] : []),

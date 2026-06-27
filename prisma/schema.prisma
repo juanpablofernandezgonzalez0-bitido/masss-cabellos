@@ -54,6 +54,7 @@ model Client {
   appointments   Appointment[]
   sales          Sale[]
   treatmentPlans TreatmentPlan[]
+  debts          Debt[]
 }
 
 model TreatmentPlan {
@@ -190,6 +191,37 @@ model Note {
   user      User     @relation(fields: [userId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Debt {
+  id          Int      @id @default(autoincrement())
+  clientId    Int
+  clientName  String   @default("")
+  description String   @default("")
+  total       Float    @default(0)
+  paidAmount  Float    @default(0)
+  status      String   @default("pendiente")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  client   Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  payments DebtPayment[]
+
+  @@index([clientId])
+  @@index([createdAt])
+}
+
+model DebtPayment {
+  id        Int      @id @default(autoincrement())
+  debtId    Int
+  amount    Float
+  notes     String   @default("")
+  paidAt    DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  debt Debt @relation(fields: [debtId], references: [id], onDelete: Cascade)
+
+  @@index([debtId])
 }
 
 model Manufacture {
