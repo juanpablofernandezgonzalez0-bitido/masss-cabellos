@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { ArrowLeft, CreditCard, DollarSign, Users, FileText, CalendarDays, CheckCircle, Clock } from "lucide-react";
+import { ArrowLeft, CreditCard, DollarSign, Users, Package, CheckCircle, Clock } from "lucide-react";
 import { formatDateTime, formatCurrency } from "@/lib/utils";
 import { PayDebtForm } from "./pay-form";
 
@@ -12,7 +12,7 @@ export default async function DebtDetailPage({ params }: { params: Promise<{ id:
 
   const debt = await prisma.debt.findUnique({
     where: { id: debtId },
-    include: { payments: { orderBy: { paidAt: "desc" } } },
+    include: { payments: { orderBy: { paidAt: "desc" } }, items: { include: { product: true } } },
   });
 
   if (!debt) notFound();
@@ -46,7 +46,15 @@ export default async function DebtDetailPage({ params }: { params: Promise<{ id:
                 {isPaid ? "Pagada" : debt.status === "parcial" ? "Parcial" : "Pendiente"}
               </span>
             </div>
-            <p className="text-sm text-[var(--muted-foreground)]">{debt.description}</p>
+            <div className="mt-1 flex flex-wrap gap-1.5">
+              {debt.items.map((item) => (
+                <span key={item.id} className="inline-flex items-center gap-1 rounded-full bg-[var(--accent)] px-2 py-0.5 text-xs text-[var(--muted-foreground)]">
+                  <Package className="h-3 w-3" />
+                  {item.product?.name ?? (item.customName || item.customDescription)}
+                  {item.quantity > 1 && <span className="ml-0.5 font-medium">x{item.quantity}</span>}
+                </span>
+              ))}
+            </div>
           </div>
         </div>
 

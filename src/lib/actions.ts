@@ -481,25 +481,75 @@ export async function deleteDebt(id: number) {
 
 export async function createDebt(formData: FormData) {
   const clientName = formData.get("clientName") as string;
-  const description = formData.get("description") as string;
-  const total = parseFloat(formData.get("total") as string) || 0;
+  const clientIdStr = formData.get("clientId") as string;
 
   if (!clientName) throw new Error("El nombre del cliente es obligatorio");
 
-  let client = await prisma.client.findFirst({ where: { name: clientName } });
-  if (!client) {
-    client = await prisma.client.create({ data: { name: clientName } });
+  let clientId: number;
+  if (clientIdStr) {
+    clientId = parseInt(clientIdStr);
+  } else {
+    let client = await prisma.client.findFirst({ where: { name: clientName } });
+    if (!client) {
+      client = await prisma.client.create({ data: { name: clientName } });
+    }
+    clientId = client.id;
+  }
+
+  const rawItems = JSON.parse(formData.get("items") as string) as Array<{
+    type: "product" | "manual";
+    productId?: number;
+    customName?: string;
+    customDescription?: string;
+    customPrice?: number;
+    quantity: number;
+  }>;
+
+  let total = 0;
+  const debtItems: Array<{
+    productId?: number | null;
+    customName?: string;
+    customDescription?: string;
+    customPrice?: number;
+    quantity: number;
+    unitPrice: number;
+    subtotal: number;
+  }> = [];
+
+  for (const item of rawItems) {
+    if (item.type === "product") {
+      const product = await prisma.product.findUnique({ where: { id: item.productId } });
+      if (!product) throw new Error(`Producto con id ${item.productId} no encontrado`);
+      const unitPrice = product.price;
+      const subtotal = unitPrice * item.quantity;
+      total += subtotal;
+      debtItems.push({ productId: item.productId, quantity: item.quantity, unitPrice, subtotal });
+    } else {
+      const unitPrice = item.customPrice ?? 0;
+      const subtotal = unitPrice * item.quantity;
+      total += subtotal;
+      debtItems.push({ productId: null, customName: item.customName ?? "", customDescription: item.customDescription ?? "", customPrice: unitPrice, quantity: item.quantity, unitPrice, subtotal });
+    }
   }
 
   await prisma.debt.create({
     data: {
-      clientId: client.id,
+      clientId,
       clientName,
-      description,
       total,
       status: "pendiente",
+      items: { create: debtItems },
     },
   });
+
+  for (const item of rawItems) {
+    if (item.type === "product") {
+      await prisma.product.update({
+        where: { id: item.productId },
+        data: { stock: { decrement: item.quantity } },
+      });
+    }
+  }
 
   revalidatePath("/debts");
 }

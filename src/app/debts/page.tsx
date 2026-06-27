@@ -1,13 +1,13 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { Plus, CreditCard, DollarSign, TrendingUp, CalendarDays, Receipt, FileText, Users } from "lucide-react";
+import { Plus, CreditCard, DollarSign, TrendingUp, CalendarDays, Receipt, Package, Users } from "lucide-react";
 import { DeleteButton } from "@/components/delete-button";
 import { formatDateTime, formatCurrency, getLocalDateKey, getLocalDateBounds, getLocalMonthBounds } from "@/lib/utils";
 
 async function getDebts() {
   return prisma.debt.findMany({
     orderBy: { createdAt: "desc" },
-    include: { payments: true },
+    include: { payments: true, items: { include: { product: true } } },
   });
 }
 
@@ -146,6 +146,7 @@ export default async function DebtsPage() {
                   {dateDebts.map((debt) => {
                     const remaining = debt.total - debt.paidAmount;
                     const isPaid = debt.status === "pagada";
+                    const itemsSummary = debt.items.map((i) => i.product?.name ?? i.customName ?? i.customDescription).filter(Boolean).join(", ");
                     return (
                       <Link
                         key={debt.id}
@@ -157,7 +158,7 @@ export default async function DebtsPage() {
                         </div>
                         <div className="min-w-0 flex-1">
                           <span className="text-sm font-medium text-[var(--foreground)]">{debt.clientName}</span>
-                          <p className="text-xs text-[var(--muted-foreground)] truncate">{debt.description}</p>
+                          <p className="text-xs text-[var(--muted-foreground)] truncate">{itemsSummary || `${debt.items.length} item${debt.items.length !== 1 ? "s" : ""}`}</p>
                         </div>
                         <div className="hidden text-xs text-[var(--muted-foreground)] sm:block">
                           {formatDateTime(debt.createdAt)}

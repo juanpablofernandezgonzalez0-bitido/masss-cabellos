@@ -38,6 +38,7 @@ model Product {
   saleItems       SaleItem[]
   purchaseItems   PurchaseItem[]
   manufactures    Manufacture[]
+  debtItems       DebtItem[]
 }
 
 model Client {
@@ -197,7 +198,6 @@ model Debt {
   id          Int      @id @default(autoincrement())
   clientId    Int
   clientName  String   @default("")
-  description String   @default("")
   total       Float    @default(0)
   paidAmount  Float    @default(0)
   status      String   @default("pendiente")
@@ -205,10 +205,26 @@ model Debt {
   updatedAt   DateTime @updatedAt
 
   client   Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  items    DebtItem[]
   payments DebtPayment[]
 
   @@index([clientId])
   @@index([createdAt])
+}
+
+model DebtItem {
+  id          Int     @id @default(autoincrement())
+  debtId      Int
+  productId   Int?
+  customName  String  @default("")
+  customDescription String @default("")
+  customPrice Float   @default(0)
+  quantity    Int     @default(1)
+  unitPrice   Float   @default(0)
+  subtotal    Float   @default(0)
+
+  debt    Debt     @relation(fields: [debtId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id])
 }
 
 model DebtPayment {
