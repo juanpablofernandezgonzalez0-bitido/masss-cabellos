@@ -1,9 +1,10 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { ArrowLeft, CreditCard, DollarSign, Users, Package, CheckCircle, Clock } from "lucide-react";
+import { ArrowLeft, CreditCard, DollarSign, Users, Package, CheckCircle, Clock, Receipt } from "lucide-react";
 import { formatDateTime, formatCurrency } from "@/lib/utils";
 import { PayDebtForm } from "./pay-form";
+import { InvoiceForm } from "./invoice-form";
 
 export default async function DebtDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -90,6 +91,31 @@ export default async function DebtDetailPage({ params }: { params: Promise<{ id:
           </div>
         </div>
       </div>
+
+      {/* Invoice */}
+      {debt.saleId ? (
+        <div className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-[var(--shadow-sm)]">
+          <div className="flex items-center gap-2 mb-4">
+            <Receipt className="h-5 w-5 text-[var(--primary)]" />
+            <h2 className="font-semibold text-[var(--foreground)]">Factura Generada</h2>
+          </div>
+          <Link
+            href={`/sales/${debt.saleId}`}
+            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[var(--primary)] to-[var(--primary-dark)] px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition-all hover:shadow-xl"
+          >
+            <Receipt className="h-4 w-4" />
+            Ver Factura
+          </Link>
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-[var(--shadow-sm)]">
+          <div className="flex items-center gap-2 mb-4">
+            <Receipt className="h-5 w-5 text-[var(--primary)]" />
+            <h2 className="font-semibold text-[var(--foreground)]">Generar Factura</h2>
+          </div>
+          <InvoiceForm debtId={debt.id} total={debt.total} clientName={debt.clientName} />
+        </div>
+      )}
 
       {/* Pay Form */}
       {!isPaid && (

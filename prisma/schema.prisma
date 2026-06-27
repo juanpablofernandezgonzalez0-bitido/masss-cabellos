@@ -120,6 +120,7 @@ model Sale {
   client      Client?      @relation(fields: [clientId], references: [id], onDelete: SetNull)
   items       SaleItem[]
   appointment Appointment?
+  debts       Debt[]
 }
 
 model SaleItem {
@@ -201,12 +202,14 @@ model Debt {
   total       Float    @default(0)
   paidAmount  Float    @default(0)
   status      String   @default("pendiente")
+  saleId      Int?     @unique
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   client   Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
   items    DebtItem[]
   payments DebtPayment[]
+  sale     Sale?         @relation(fields: [saleId], references: [id], onDelete: SetNull)
 
   @@index([clientId])
   @@index([createdAt])

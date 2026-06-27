@@ -600,3 +600,60 @@ export async function deleteDebtPayment(id: number) {
   revalidatePath("/debts");
   revalidatePath(`/debts/${payment.debtId}`);
 }
+
+export async function createInvoiceFromDebt(debtId: number, formData: FormData) {
+  const paid = parseFloat(formData.get("paid") as string) || 0;
+  const paymentMethod = (formData.get("paymentMethod") as string) || "efectivo";
+
+  const debt = await prisma.debt.findUnique({
+    where: { id: debtId },
+    include: { items: true },
+  });
+  if (!debt) throw new Error("Deuda no encontrada");
+  if (debt.saleId) throw new Error("Esta deuda ya tiene una factura generada");
+
+  const sale = await prisma.$transaction(async (tx) => {
+    const saleItems = debt.items.map((item) => ({
+      productId: item.productId,
+      customName: item.customName,
+      customDescription: item.customDescription,
+      customPrice: item.customPrice,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      subtotal: item.subtotal,
+    }));
+
+    const s = await tx.sale.create({
+      data: {
+        clientId: debt.clientId,
+        total: debt.total,
+        paid,
+        change: paid > debt.total ? paid - debt.total : 0,
+        paymentMethod,
+        items: { create: saleItems },
+      },
+    });
+
+    await tx.debt.update({
+      where: { id: debtId },
+      data: {
+        saleId: s.id,
+        paidAmount: debt.paidAmount + paid,
+        status: debt.paidAmount + paid >= debt.total ? "pagada" : "parcial",
+      },
+    });
+
+    if (paid > 0) {
+      await tx.debtPayment.create({
+        data: { debtId, amount: paid, notes: "Pago desde factura" },
+      });
+    }
+
+    return s;
+  });
+
+  revalidatePath("/debts");
+  revalidatePath(`/debts/${debtId}`);
+  revalidatePath("/sales");
+  return sale.id;
+}
