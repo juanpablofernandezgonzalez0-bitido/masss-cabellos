@@ -139,7 +139,7 @@ export default function NewDebtPage() {
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <Link href="/debts" className="inline-flex items-center gap-1.5 text-sm text-[var(--muted-foreground)] transition-colors hover:text-[var(--primary)]">
-        <ArrowLeft className="h-4 w-4" /> Volver a deudas
+        <ArrowLeft className="h-4 w-4" /> Volver a Cobrar/Pagar
       </Link>
       <div className="flex items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-amber-100 to-amber-200">

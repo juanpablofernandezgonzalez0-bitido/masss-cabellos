@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import {
   BarChart3, TrendingUp, DollarSign, ShoppingCart, Calendar,
-  Package, Users, Receipt, Truck, Clock, Star, Factory,
+  Package, Users, Receipt, Truck, Clock, Star, Factory, Building2,
   ArrowUpRight, ArrowDownRight,
 } from "lucide-react";
 import { MonthlySalesChart } from "./monthly-sales-chart";
@@ -84,6 +84,8 @@ async function getSummary(start: Date, end: Date): Promise<PeriodSummary> {
   ]);
 
   const revenue = sales.reduce((s, x) => s + x.total, 0);
+  const revenueEfectivo = sales.filter(s => s.paymentMethod === "efectivo").reduce((s, x) => s + x.total, 0);
+  const revenueTransferencia = sales.filter(s => s.paymentMethod === "transferencia").reduce((s, x) => s + x.total, 0);
   const purchaseExpenses = purchases.reduce((s, x) => s + x.total, 0);
   const payrollExpenses = payrolls.reduce((s, x) => s + x.amount, 0);
   const expenses = purchaseExpenses + payrollExpenses;
@@ -99,6 +101,8 @@ async function getSummary(start: Date, end: Date): Promise<PeriodSummary> {
 
   return {
     revenue,
+    revenueEfectivo,
+    revenueTransferencia,
     expenses,
     payrollExpenses,
     profit: revenue - expenses,
@@ -341,6 +345,32 @@ export default async function ReportsPage({
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Revenue Breakdown */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-2">
+        <div className="rounded-xl border border-emerald-100 bg-emerald-50/50 p-3 shadow-[var(--shadow-sm)]">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-400 to-emerald-500 shadow-sm">
+              <DollarSign className="h-4 w-4 text-white" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--muted-foreground)]">Efectivo</p>
+              <p className="text-sm font-bold text-emerald-600">{formatCurrency(summary.revenueEfectivo)}</p>
+            </div>
+          </div>
+        </div>
+        <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-3 shadow-[var(--shadow-sm)]">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-blue-400 to-blue-500 shadow-sm">
+              <Building2 className="h-4 w-4 text-white" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] font-medium uppercase tracking-wider text-[var(--muted-foreground)]">Transferencia</p>
+              <p className="text-sm font-bold text-blue-600">{formatCurrency(summary.revenueTransferencia)}</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">

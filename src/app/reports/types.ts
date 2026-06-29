@@ -2,6 +2,8 @@ export type Period = "today" | "week" | "month" | "year" | "range";
 
 export interface PeriodSummary {
   revenue: number;
+  revenueEfectivo: number;
+  revenueTransferencia: number;
   expenses: number;
   payrollExpenses: number;
   profit: number;

@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import {
-  DollarSign, ShoppingCart, TrendingUp, Calendar, Users, Package, Truck, Receipt, Sun,
+  DollarSign, ShoppingCart, TrendingUp, Calendar, Users, Package, Truck, Receipt, Sun, Building2,
 } from "lucide-react";
 import { formatCurrency, formatTime12h } from "@/lib/utils";
 import { DayPicker } from "./day-picker";
@@ -9,6 +9,8 @@ import { TopProductsChart } from "./top-products-chart";
 
 interface DaySummary {
   revenue: number;
+  revenueEfectivo: number;
+  revenueTransferencia: number;
   expenses: number;
   profit: number;
   productsSold: number;
@@ -43,6 +45,8 @@ async function getDayData(dateStr: string) {
   ]);
 
   const revenue = sales.reduce((s, x) => s + x.total, 0);
+  const revenueEfectivo = sales.filter(s => s.paymentMethod === "efectivo").reduce((s, x) => s + x.total, 0);
+  const revenueTransferencia = sales.filter(s => s.paymentMethod === "transferencia").reduce((s, x) => s + x.total, 0);
   const expenses = purchases.reduce((s, x) => s + x.total, 0);
   const productsSold = sales.reduce((s, x) => s + x.items.reduce((si, item) => si + item.quantity, 0), 0);
   const productsPurchased = purchases.reduce((s, x) => s + x.items.reduce((si, item) => si + item.quantity, 0), 0);
@@ -79,6 +83,8 @@ async function getDayData(dateStr: string) {
 
   const summary: DaySummary = {
     revenue,
+    revenueEfectivo,
+    revenueTransferencia,
     expenses,
     profit: revenue - expenses,
     productsSold,
@@ -99,7 +105,7 @@ export default async function DaySummaryPage({
   searchParams: Promise<{ date?: string }>;
 }) {
   const { date: rawDate } = await searchParams;
-  const todayStr = new Date().toISOString().split("T")[0];
+  const todayStr = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bogota", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
   const dateStr = rawDate && /^\d{4}-\d{2}-\d{2}$/.test(rawDate) ? rawDate : todayStr;
 
   const data = await getDayData(dateStr);
@@ -171,6 +177,32 @@ export default async function DaySummaryPage({
             </div>
           );
         })}
+      </div>
+
+      {/* Revenue Breakdown */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-2">
+        <div className="group rounded-xl border border-emerald-100 bg-emerald-50/50 p-4 shadow-[var(--shadow-sm)] transition-all hover:shadow-md">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-500 shadow-sm">
+              <DollarSign className="h-5 w-5 text-white" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">Efectivo</p>
+              <p className="text-base font-bold text-emerald-600">{formatCurrency(summary.revenueEfectivo)}</p>
+            </div>
+          </div>
+        </div>
+        <div className="group rounded-xl border border-blue-100 bg-blue-50/50 p-4 shadow-[var(--shadow-sm)] transition-all hover:shadow-md">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-400 to-blue-500 shadow-sm">
+              <Building2 className="h-5 w-5 text-white" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">Transferencia</p>
+              <p className="text-base font-bold text-blue-600">{formatCurrency(summary.revenueTransferencia)}</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Charts */}

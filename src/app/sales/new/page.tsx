@@ -183,6 +183,8 @@ export default function NewSalePage() {
     });
     formData.set("items", JSON.stringify(payload));
     formData.set("paid", paid);
+    const paymentMethodInput = formRef.current?.querySelector<HTMLInputElement>('[name="paymentMethod"]:checked');
+    formData.set("paymentMethod", paymentMethodInput?.value || "efectivo");
 
     try {
       const saleId = await createSale(formData);

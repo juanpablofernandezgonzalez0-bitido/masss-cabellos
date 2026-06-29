@@ -243,6 +243,35 @@ model DebtPayment {
   @@index([debtId])
 }
 
+model SupplierDebt {
+  id            Int      @id @default(autoincrement())
+  supplierName  String
+  concept       String   @default("")
+  total         Float    @default(0)
+  paidAmount    Float    @default(0)
+  status        String   @default("pendiente")
+  notes         String   @default("")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  payments      SupplierDebtPayment[]
+
+  @@index([createdAt])
+}
+
+model SupplierDebtPayment {
+  id        Int      @id @default(autoincrement())
+  debtId    Int
+  amount    Float
+  notes     String   @default("")
+  paidAt    DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  debt      SupplierDebt @relation(fields: [debtId], references: [id], onDelete: Cascade)
+
+  @@index([debtId])
+}
+
 model Manufacture {
   id        Int      @id @default(autoincrement())
   productId Int

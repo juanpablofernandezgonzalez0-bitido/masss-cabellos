@@ -1,19 +1,18 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { ArrowLeft, CreditCard, DollarSign, Users, Package, CheckCircle, Clock, Receipt } from "lucide-react";
+import { ArrowLeft, Truck, DollarSign, CheckCircle, Clock } from "lucide-react";
 import { formatDateTime, formatCurrency } from "@/lib/utils";
-import { PayDebtForm } from "./pay-form";
-import { InvoiceForm } from "./invoice-form";
+import { PaySupplierDebtForm } from "./pay-form";
 
-export default async function DebtDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function SupplierDebtDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const debtId = parseInt(id);
   if (isNaN(debtId)) notFound();
 
-  const debt = await prisma.debt.findUnique({
+  const debt = await prisma.supplierDebt.findUnique({
     where: { id: debtId },
-    include: { payments: { orderBy: { paidAt: "desc" } }, items: { include: { product: true } } },
+    include: { payments: { orderBy: { paidAt: "desc" } } },
   });
 
   if (!debt) notFound();
@@ -31,12 +30,12 @@ export default async function DebtDetailPage({ params }: { params: Promise<{ id:
       {/* Header */}
       <div className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-[var(--shadow-sm)]">
         <div className="flex items-center gap-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-amber-100 to-orange-100">
-            <CreditCard className="h-6 w-6 text-amber-600" />
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-rose-100 to-pink-100">
+            <Truck className="h-6 w-6 text-rose-600" />
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold text-[var(--foreground)]">{debt.clientName}</h1>
+              <h1 className="text-xl font-bold text-[var(--foreground)]">{debt.supplierName}</h1>
               <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
                 isPaid
                   ? "bg-[var(--success)]/10 text-[var(--success)]"
@@ -47,15 +46,9 @@ export default async function DebtDetailPage({ params }: { params: Promise<{ id:
                 {isPaid ? "Pagada" : debt.status === "parcial" ? "Parcial" : "Pendiente"}
               </span>
             </div>
-            <div className="mt-1 flex flex-wrap gap-1.5">
-              {debt.items.map((item) => (
-                <span key={item.id} className="inline-flex items-center gap-1 rounded-full bg-[var(--accent)] px-2 py-0.5 text-xs text-[var(--muted-foreground)]">
-                  <Package className="h-3 w-3" />
-                  {item.product?.name ?? (item.customName || item.customDescription)}
-                  {item.quantity > 1 && <span className="ml-0.5 font-medium">x{item.quantity}</span>}
-                </span>
-              ))}
-            </div>
+            {debt.concept && (
+              <p className="mt-1 text-sm text-[var(--muted-foreground)]">{debt.concept}</p>
+            )}
           </div>
         </div>
 
@@ -92,31 +85,6 @@ export default async function DebtDetailPage({ params }: { params: Promise<{ id:
         </div>
       </div>
 
-      {/* Invoice */}
-      {debt.saleId ? (
-        <div className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-[var(--shadow-sm)]">
-          <div className="flex items-center gap-2 mb-4">
-            <Receipt className="h-5 w-5 text-[var(--primary)]" />
-            <h2 className="font-semibold text-[var(--foreground)]">Factura Generada</h2>
-          </div>
-          <Link
-            href={`/sales/${debt.saleId}`}
-            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[var(--primary)] to-[var(--primary-dark)] px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition-all hover:shadow-xl"
-          >
-            <Receipt className="h-4 w-4" />
-            Ver Factura
-          </Link>
-        </div>
-      ) : (
-        <div className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-[var(--shadow-sm)]">
-          <div className="flex items-center gap-2 mb-4">
-            <Receipt className="h-5 w-5 text-[var(--primary)]" />
-            <h2 className="font-semibold text-[var(--foreground)]">Generar Factura</h2>
-          </div>
-          <InvoiceForm debtId={debt.id} total={debt.total} clientName={debt.clientName} />
-        </div>
-      )}
-
       {/* Pay Form */}
       {!isPaid && (
         <div className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-[var(--shadow-sm)]">
@@ -124,7 +92,7 @@ export default async function DebtDetailPage({ params }: { params: Promise<{ id:
             <DollarSign className="h-5 w-5 text-[var(--success)]" />
             <h2 className="font-semibold text-[var(--foreground)]">Registrar Pago</h2>
           </div>
-          <PayDebtForm debtId={debt.id} maxAmount={remaining} />
+          <PaySupplierDebtForm debtId={debt.id} maxAmount={remaining} />
         </div>
       )}
 
