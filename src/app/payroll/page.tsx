@@ -6,6 +6,7 @@ import { PayButton } from "./pay-button";
 import { PayrollFilter } from "./payroll-filter";
 import { PayrollActions } from "./payroll-actions";
 import { DeleteWorkerButton } from "./delete-worker-button";
+import { AttendancePanel } from "./attendance-panel";
 
 interface SearchParams {
   q?: string;
@@ -28,7 +29,11 @@ async function getPayrollData(params: SearchParams) {
 
   if (AND.length > 0) wherePayroll.AND = AND;
 
-  const [workers, payments] = await Promise.all([
+  const now = new Date();
+  const attendanceMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const attendanceMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
+  const [workers, payments, attendances] = await Promise.all([
     prisma.worker.findMany({
       where: { isActive: true },
       orderBy: { name: "asc" },
@@ -43,11 +48,14 @@ async function getPayrollData(params: SearchParams) {
       take: 50,
       include: { worker: { select: { name: true } } },
     }),
+    prisma.attendance.findMany({
+      where: { date: { gte: attendanceMonthStart, lte: attendanceMonthEnd } },
+    }),
   ]);
 
   const totalPaid = payments.reduce((s, p) => s + p.amount, 0);
 
-  return { workers, payments, totalPaid };
+  return { workers, payments, totalPaid, attendances };
 }
 
 export default async function PayrollPage({
@@ -56,7 +64,7 @@ export default async function PayrollPage({
   searchParams: Promise<SearchParams>;
 }) {
   const params = await searchParams;
-  const { workers, payments, totalPaid } = await getPayrollData(params);
+  const { workers, payments, totalPaid, attendances } = await getPayrollData(params);
   const activeCount = workers.length;
 
   return (
@@ -106,6 +114,19 @@ export default async function PayrollPage({
         </div>
       </div>
 
+      {/* Attendance Panel */}
+      {!params.q && !params.date && (
+        <AttendancePanel
+          workers={workers.map((w) => ({ id: w.id, name: w.name, image: w.image }))}
+          initialAttendances={attendances.map((a) => ({
+            id: a.id,
+            workerId: a.workerId,
+            date: a.date.toISOString(),
+            type: a.type,
+          }))}
+        />
+      )}
+
       {/* Filters */}
       <PayrollFilter q={params.q} date={params.date} />
 
@@ -129,6 +150,10 @@ export default async function PayrollPage({
             <div className="divide-y divide-[var(--border)]">
               {workers.map((w) => {
                 const lastPay = w.payrolls[0];
+                const workerAttendances = attendances.filter((a) => a.workerId === w.id);
+                const fullDays = workerAttendances.filter((a) => a.type === "full").length;
+                const halfDays = workerAttendances.filter((a) => a.type === "half").length;
+                const attendanceDays = fullDays + halfDays * 0.5;
                 return (
                   <div key={w.id} className="flex items-center gap-4 px-5 py-4 transition-colors hover:bg-[var(--card-hover)]">
                     {w.image ? (
@@ -145,9 +170,10 @@ export default async function PayrollPage({
                       <p className="text-xs text-[var(--muted-foreground)]">
                         {w._count.payrolls} pago{w._count.payrolls !== 1 ? "s" : ""}
                         {lastPay ? ` · Último: ${formatCurrency(lastPay.amount)} (${lastPay.daysWorked}d)` : ""}
+                        {attendanceDays > 0 && ` · Asistencia: ${attendanceDays}d`}
                       </p>
                     </div>
-                    <PayButton workerId={w.id} workerName={w.name} />
+                    <PayButton workerId={w.id} workerName={w.name} attendanceDays={attendanceDays || undefined} />
                     <DeleteWorkerButton workerId={w.id} workerName={w.name} />
                   </div>
                 );

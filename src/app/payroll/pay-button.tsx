@@ -7,9 +7,10 @@ import { PayModal } from "./pay-modal";
 interface Props {
   workerId: number;
   workerName: string;
+  attendanceDays?: number;
 }
 
-export function PayButton({ workerId, workerName }: Props) {
+export function PayButton({ workerId, workerName, attendanceDays }: Props) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -25,6 +26,7 @@ export function PayButton({ workerId, workerName }: Props) {
         <PayModal
           workerId={workerId}
           workerName={workerName}
+          suggestedDays={attendanceDays}
           onClose={() => setOpen(false)}
         />
       )}

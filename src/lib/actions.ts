@@ -724,3 +724,84 @@ export async function deleteSupplierDebtPayment(id: number) {
   revalidatePath("/debts");
   revalidatePath(`/debts/supplier/${payment.debtId}`);
 }
+
+export async function markAttendance(workerId: number, date: string, type: string) {
+  const dateObj = new Date(date + "T00:00:00-05:00");
+
+  if (type === "none") {
+    await prisma.attendance.deleteMany({
+      where: { workerId, date: dateObj },
+    });
+  } else {
+    await prisma.attendance.upsert({
+      where: { workerId_date: { workerId, date: dateObj } },
+      update: { type },
+      create: { workerId, date: dateObj, type },
+    });
+  }
+
+  revalidatePath("/payroll");
+}
+
+export async function deleteAttendance(id: number) {
+  await prisma.attendance.delete({ where: { id } });
+  revalidatePath("/payroll");
+}
+
+export async function editDebtPayment(id: number, formData: FormData) {
+  const newAmount = parseFloat(formData.get("amount") as string) || 0;
+  if (newAmount <= 0) throw new Error("El monto debe ser mayor a 0");
+
+  const payment = await prisma.debtPayment.findUnique({ where: { id } });
+  if (!payment) throw new Error("Pago no encontrado");
+
+  const debt = await prisma.debt.findUnique({ where: { id: payment.debtId } });
+  if (!debt) throw new Error("Deuda no encontrada");
+
+  const diff = newAmount - payment.amount;
+  const newPaid = debt.paidAmount + diff;
+  const newStatus = newPaid >= debt.total ? "pagada" : newPaid > 0 ? "parcial" : "pendiente";
+
+  await prisma.$transaction([
+    prisma.debtPayment.update({
+      where: { id },
+      data: { amount: newAmount },
+    }),
+    prisma.debt.update({
+      where: { id: payment.debtId },
+      data: { paidAmount: newPaid, status: newStatus },
+    }),
+  ]);
+
+  revalidatePath("/debts");
+  revalidatePath(`/debts/${payment.debtId}`);
+}
+
+export async function editSupplierDebtPayment(id: number, formData: FormData) {
+  const newAmount = parseFloat(formData.get("amount") as string) || 0;
+  if (newAmount <= 0) throw new Error("El monto debe ser mayor a 0");
+
+  const payment = await prisma.supplierDebtPayment.findUnique({ where: { id } });
+  if (!payment) throw new Error("Pago no encontrado");
+
+  const debt = await prisma.supplierDebt.findUnique({ where: { id: payment.debtId } });
+  if (!debt) throw new Error("Deuda no encontrada");
+
+  const diff = newAmount - payment.amount;
+  const newPaid = debt.paidAmount + diff;
+  const newStatus = newPaid >= debt.total ? "pagada" : newPaid > 0 ? "parcial" : "pendiente";
+
+  await prisma.$transaction([
+    prisma.supplierDebtPayment.update({
+      where: { id },
+      data: { amount: newAmount },
+    }),
+    prisma.supplierDebt.update({
+      where: { id: payment.debtId },
+      data: { paidAmount: newPaid, status: newStatus },
+    }),
+  ]);
+
+  revalidatePath("/debts");
+  revalidatePath(`/debts/supplier/${payment.debtId}`);
+}

@@ -169,7 +169,21 @@ model Worker {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
-  payrolls Payroll[]
+  payrolls    Payroll[]
+  attendances Attendance[]
+}
+
+model Attendance {
+  id        Int      @id @default(autoincrement())
+  workerId  Int
+  date      DateTime
+  type      String   @default("full")
+  createdAt DateTime @default(now())
+
+  worker    Worker   @relation(fields: [workerId], references: [id], onDelete: Cascade)
+
+  @@unique([workerId, date])
+  @@index([workerId])
 }
 
 model Payroll {

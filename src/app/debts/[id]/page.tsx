@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { ArrowLeft, CreditCard, DollarSign, Users, Package, CheckCircle, Clock, Receipt } from "lucide-react";
+import { PaymentActions } from "./payment-actions";
 import { formatDateTime, formatCurrency } from "@/lib/utils";
 import { PayDebtForm } from "./pay-form";
 import { InvoiceForm } from "./invoice-form";
@@ -148,9 +149,10 @@ export default async function DebtDetailPage({ params }: { params: Promise<{ id:
                   <CheckCircle className="h-4 w-4 text-[var(--success)]" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-[var(--foreground)]">
-                    Pago de {formatCurrency(payment.amount)}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium text-[var(--foreground)]">Pago</p>
+                    <PaymentActions payment={payment} debtId={debt.id} />
+                  </div>
                   <p className="text-xs text-[var(--muted-foreground)]">
                     {formatDateTime(payment.paidAt)}
                   </p>

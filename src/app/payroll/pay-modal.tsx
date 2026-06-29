@@ -7,11 +7,12 @@ import { DollarSign, X } from "lucide-react";
 interface Props {
   workerId: number;
   workerName: string;
+  suggestedDays?: number;
   onClose: () => void;
 }
 
-export function PayModal({ workerId, workerName, onClose }: Props) {
-  const [days, setDays] = useState("");
+export function PayModal({ workerId, workerName, suggestedDays, onClose }: Props) {
+  const [days, setDays] = useState(suggestedDays ? String(suggestedDays) : "");
   const [amount, setAmount] = useState("");
   const [notes, setNotes] = useState("");
   const [error, setError] = useState("");

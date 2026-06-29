@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { ArrowLeft, Truck, DollarSign, CheckCircle, Clock } from "lucide-react";
 import { formatDateTime, formatCurrency } from "@/lib/utils";
 import { PaySupplierDebtForm } from "./pay-form";
+import { SupplierPaymentActions } from "./payment-actions";
 
 export default async function SupplierDebtDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -116,9 +117,10 @@ export default async function SupplierDebtDetailPage({ params }: { params: Promi
                   <CheckCircle className="h-4 w-4 text-[var(--success)]" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-[var(--foreground)]">
-                    Pago de {formatCurrency(payment.amount)}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium text-[var(--foreground)]">Pago</p>
+                    <SupplierPaymentActions payment={payment} debtId={debt.id} />
+                  </div>
                   <p className="text-xs text-[var(--muted-foreground)]">
                     {formatDateTime(payment.paidAt)}
                   </p>
